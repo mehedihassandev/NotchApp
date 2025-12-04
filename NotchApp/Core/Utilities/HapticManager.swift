@@ -17,6 +17,9 @@ final class HapticManager {
         case success
         case warning
         case error
+        case light
+        case medium
+        case heavy
     }
 
     // MARK: - Public Methods
@@ -28,12 +31,29 @@ final class HapticManager {
         // On supported devices (MacBooks with Force Touch), the system
         // handles haptics automatically for standard controls
 
-        // For custom haptics, we could potentially use:
-        // - NSHapticFeedbackManager (limited availability)
+        // Use NSHapticFeedbackManager for Force Touch trackpads
+        let performer = NSHapticFeedbackManager.defaultPerformer
+
+        switch type {
+        case .selection, .light:
+            performer.perform(.alignment, performanceTime: .default)
+        case .success, .medium:
+            performer.perform(.levelChange, performanceTime: .default)
+        case .warning, .heavy:
+            performer.perform(.generic, performanceTime: .default)
+        case .error:
+            performer.perform(.generic, performanceTime: .default)
+        }
 
         #if DEBUG
         print("🎯 Haptic feedback: \(type)")
         #endif
+    }
+
+    /// Play feedback with intensity level
+    /// - Parameter type: The intensity type of feedback
+    func playFeedback(_ type: FeedbackType) {
+        trigger(type)
     }
 
     /// Triggers selection haptic

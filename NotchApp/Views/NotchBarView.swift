@@ -183,7 +183,35 @@ extension NotchBarView {
 
     private var notchBackground: some View {
         ZStack {
-            // Glow effect - blue when dragging files, purple gradient otherwise
+            // Outer glow shadow effect - more diffused and spread out
+            NotchShape(topCornerRadius: 0, bottomCornerRadius: showContent ? 16 : 12)
+                .fill(
+                    notchState.isDraggingFile ?
+                    LinearGradient(
+                        colors: [
+                            AppTheme.Colors.accentBlue.opacity(0.5),
+                            Color.cyan.opacity(0.4),
+                            AppTheme.Colors.accentBlue.opacity(0.5)
+                        ],
+                        startPoint: .leading,
+                        endPoint: .trailing
+                    ) :
+                    LinearGradient(
+                        colors: [
+                            Color.purple.opacity(0.4 * glowIntensity),
+                            Color.blue.opacity(0.5 * glowIntensity),
+                            Color.indigo.opacity(0.4 * glowIntensity)
+                        ],
+                        startPoint: .leading,
+                        endPoint: .trailing
+                    )
+                )
+                .blur(radius: notchState.isDraggingFile ? 40 : 35 * glowIntensity)
+                .offset(y: notchState.isDraggingFile ? 20 : 18 * glowIntensity)
+                .scaleEffect(x: 0.9, y: 1.3)
+                .animation(AppTheme.Animations.spring, value: notchState.isDraggingFile)
+
+            // Inner glow effect - more intense and closer
             NotchShape(topCornerRadius: 0, bottomCornerRadius: showContent ? 16 : 12)
                 .fill(
                     notchState.isDraggingFile ?
