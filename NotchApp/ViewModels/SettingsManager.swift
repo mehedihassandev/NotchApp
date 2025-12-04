@@ -11,25 +11,21 @@ final class SettingsManager: ObservableObject {
 
     // MARK: - UserDefaults Keys
     private enum Keys {
-        static let accentColor = "accentColor"
-        static let enableHaptics = "enableHaptics"
-        static let enableAnimations = "enableAnimations"
-        static let autoHideDelay = "autoHideDelay"
-        static let showMediaPlayer = "showMediaPlayer"
-        static let showShortcuts = "showShortcuts"
+        static let enableNotch = "enableNotch"
+        static let notchSize = "notchSize"
         static let enableGlowEffect = "enableGlowEffect"
         static let glowIntensity = "glowIntensity"
         static let cornerRadius = "cornerRadius"
-        static let launchAtLogin = "launchAtLogin"
-        static let enableSoundEffects = "enableSoundEffects"
-        static let notchSize = "notchSize"
         static let enableBlur = "enableBlur"
-        static let showInMenuBar = "showInMenuBar"
     }
 
-    // MARK: - Appearance Settings
-    @Published var accentColor: AccentColorOption {
-        didSet { UserDefaults.standard.set(accentColor.rawValue, forKey: Keys.accentColor) }
+    // MARK: - Notch Customization Settings
+    @Published var enableNotch: Bool {
+        didSet { UserDefaults.standard.set(enableNotch, forKey: Keys.enableNotch) }
+    }
+
+    @Published var notchSize: NotchSizeOption {
+        didSet { UserDefaults.standard.set(notchSize.rawValue, forKey: Keys.notchSize) }
     }
 
     @Published var enableGlowEffect: Bool {
@@ -48,86 +44,26 @@ final class SettingsManager: ObservableObject {
         didSet { UserDefaults.standard.set(enableBlur, forKey: Keys.enableBlur) }
     }
 
-    @Published var notchSize: NotchSizeOption {
-        didSet { UserDefaults.standard.set(notchSize.rawValue, forKey: Keys.notchSize) }
-    }
-
-    // MARK: - General Settings
-    @Published var enableHaptics: Bool {
-        didSet { UserDefaults.standard.set(enableHaptics, forKey: Keys.enableHaptics) }
-    }
-
-    @Published var enableAnimations: Bool {
-        didSet { UserDefaults.standard.set(enableAnimations, forKey: Keys.enableAnimations) }
-    }
-
-    @Published var enableSoundEffects: Bool {
-        didSet { UserDefaults.standard.set(enableSoundEffects, forKey: Keys.enableSoundEffects) }
-    }
-
-    @Published var autoHideDelay: Double {
-        didSet { UserDefaults.standard.set(autoHideDelay, forKey: Keys.autoHideDelay) }
-    }
-
-    @Published var launchAtLogin: Bool {
-        didSet { UserDefaults.standard.set(launchAtLogin, forKey: Keys.launchAtLogin) }
-    }
-
-    @Published var showInMenuBar: Bool {
-        didSet { UserDefaults.standard.set(showInMenuBar, forKey: Keys.showInMenuBar) }
-    }
-
-    // MARK: - Widget Settings
-    @Published var showMediaPlayer: Bool {
-        didSet { UserDefaults.standard.set(showMediaPlayer, forKey: Keys.showMediaPlayer) }
-    }
-
-    @Published var showShortcuts: Bool {
-        didSet { UserDefaults.standard.set(showShortcuts, forKey: Keys.showShortcuts) }
-    }
-
     // MARK: - Initialization
     private init() {
         // Load saved settings or use defaults
         let defaults = UserDefaults.standard
-
-        // Appearance
-        self.accentColor = AccentColorOption(rawValue: defaults.string(forKey: Keys.accentColor) ?? "") ?? .purple
+        self.enableNotch = defaults.object(forKey: Keys.enableNotch) as? Bool ?? true
+        self.notchSize = NotchSizeOption(rawValue: defaults.string(forKey: Keys.notchSize) ?? "") ?? .medium
         self.enableGlowEffect = defaults.object(forKey: Keys.enableGlowEffect) as? Bool ?? true
         self.glowIntensity = defaults.object(forKey: Keys.glowIntensity) as? Double ?? 0.7
         self.cornerRadius = defaults.object(forKey: Keys.cornerRadius) as? Double ?? 14
         self.enableBlur = defaults.object(forKey: Keys.enableBlur) as? Bool ?? true
-        self.notchSize = NotchSizeOption(rawValue: defaults.string(forKey: Keys.notchSize) ?? "") ?? .medium
-
-        // General
-        self.enableHaptics = defaults.object(forKey: Keys.enableHaptics) as? Bool ?? true
-        self.enableAnimations = defaults.object(forKey: Keys.enableAnimations) as? Bool ?? true
-        self.enableSoundEffects = defaults.object(forKey: Keys.enableSoundEffects) as? Bool ?? false
-        self.autoHideDelay = defaults.object(forKey: Keys.autoHideDelay) as? Double ?? 0.5
-        self.launchAtLogin = defaults.object(forKey: Keys.launchAtLogin) as? Bool ?? false
-        self.showInMenuBar = defaults.object(forKey: Keys.showInMenuBar) as? Bool ?? false
-
-        // Widgets
-        self.showMediaPlayer = defaults.object(forKey: Keys.showMediaPlayer) as? Bool ?? true
-        self.showShortcuts = defaults.object(forKey: Keys.showShortcuts) as? Bool ?? true
     }
 
     // MARK: - Methods
     func resetToDefaults() {
-        accentColor = .purple
+        enableNotch = true
+        notchSize = .medium
         enableGlowEffect = true
         glowIntensity = 0.7
         cornerRadius = 14
         enableBlur = true
-        notchSize = .medium
-        enableHaptics = true
-        enableAnimations = true
-        enableSoundEffects = false
-        autoHideDelay = 0.5
-        launchAtLogin = false
-        showInMenuBar = false
-        showMediaPlayer = true
-        showShortcuts = true
     }
 }
 
@@ -165,7 +101,10 @@ enum AccentColorOption: String, CaseIterable, Identifiable {
 }
 
 // MARK: - Notch Size Options
-enum NotchSizeOption: String, CaseIterable, Identifiable {
+enum NotchSizeOption: String, CaseIterable, Identifiable, CustomStringConvertible {
+        var description: String {
+            displayName
+        }
     case small = "small"
     case medium = "medium"
     case large = "large"

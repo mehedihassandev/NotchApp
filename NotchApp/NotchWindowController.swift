@@ -62,6 +62,7 @@ final class NotchWindow: NSWindow {
     private var cancellables = Set<AnyCancellable>()
     private var dropTargetView: DropTargetView?
     private var dragTrackingTimer: Timer?
+    private var settingsCancellable: AnyCancellable?
 
     // MARK: - Initialization
     override init(
@@ -129,6 +130,14 @@ final class NotchWindow: NSWindow {
                 }
             }
             .store(in: &cancellables)
+
+        // Settings changes
+        settingsCancellable = SettingsManager.shared.$enableNotch
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] enabled in
+                self?.alphaValue = enabled ? 1.0 : 0.0
+                self?.ignoresMouseEvents = !enabled
+            }
     }
 
     // MARK: - Drag Tracking

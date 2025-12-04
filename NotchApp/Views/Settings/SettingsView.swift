@@ -1,7 +1,7 @@
 import SwiftUI
 
 // MARK: - Settings View
-/// Main settings modal view with multiple tabs
+/// Main settings modal view with multiple tabs - Modern glassmorphism design
 
 struct SettingsView: View {
 
@@ -9,61 +9,26 @@ struct SettingsView: View {
     @StateObject private var settings = SettingsManager.shared
     @State private var selectedTab: SettingsTab = .general
     @Namespace private var tabNamespace
+    @State private var isHoveringTab: SettingsTab? = nil
 
     // MARK: - Body
     var body: some View {
         VStack(spacing: 0) {
-            // Header
-            settingsHeader
-
             // Tab Bar
             tabBar
-                .padding(.top, 8)
+                .padding(.horizontal, 20)
+                .padding(.top, 20)
+                .padding(.bottom, 16)
 
             // Content
             ScrollView(.vertical, showsIndicators: false) {
                 tabContent
-                    .padding(.horizontal, 24)
-                    .padding(.vertical, 20)
+                    .padding(.horizontal, 20)
+                    .padding(.bottom, 20)
             }
         }
-        .frame(width: 540, height: 620)
-        .background(
-            ZStack {
-                // Base color
-                Color(NSColor.windowBackgroundColor)
-
-                // Subtle gradient overlay
-                LinearGradient(
-                    colors: [
-                        settings.accentColor.color.opacity(0.03),
-                        Color.clear
-                    ],
-                    startPoint: .topLeading,
-                    endPoint: .bottomTrailing
-                )
-            }
-        )
-    }
-
-    // MARK: - Header
-    private var settingsHeader: some View {
-        HStack {
-            Text("Settings")
-                .font(.system(size: 24, weight: .bold, design: .rounded))
-                .foregroundStyle(
-                    LinearGradient(
-                        colors: [.primary, .primary.opacity(0.7)],
-                        startPoint: .leading,
-                        endPoint: .trailing
-                    )
-                )
-
-            Spacer()
-        }
-        .padding(.horizontal, 24)
-        .padding(.top, 20)
-        .padding(.bottom, 8)
+        .frame(width: 480, height: 520)
+        .background(Color(NSColor.windowBackgroundColor))
     }
 
     // MARK: - Tab Bar
@@ -73,49 +38,59 @@ struct SettingsView: View {
                 tabButton(for: tab)
             }
         }
-        .padding(6)
+        .padding(4)
         .background(
-            RoundedRectangle(cornerRadius: 14, style: .continuous)
+            RoundedRectangle(cornerRadius: 12, style: .continuous)
                 .fill(.ultraThinMaterial)
-                .shadow(color: .black.opacity(0.08), radius: 8, y: 2)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 12, style: .continuous)
+                        .stroke(Color.primary.opacity(0.08), lineWidth: 1)
+                )
+                .shadow(color: .black.opacity(0.06), radius: 10, y: 3)
+                .shadow(color: .black.opacity(0.03), radius: 2, y: 1)
         )
-        .padding(.horizontal, 24)
     }
 
     private func tabButton(for tab: SettingsTab) -> some View {
-        Button(action: {
-            withAnimation(.spring(response: 0.35, dampingFraction: 0.75)) {
+        Button {
+            withAnimation(.spring(response: 0.35, dampingFraction: 0.78)) {
                 selectedTab = tab
             }
-        }) {
-            VStack(spacing: 6) {
-                ZStack {
-                    Circle()
-                        .fill(selectedTab == tab ? settings.accentColor.color : Color.clear)
-                        .frame(width: 36, height: 36)
-
-                    Image(systemName: tab.icon)
-                        .font(.system(size: 16, weight: .semibold))
-                        .foregroundColor(selectedTab == tab ? .white : .secondary)
-                }
+        } label: {
+            HStack(spacing: 6) {
+                Image(systemName: tab.icon)
+                    .font(.system(size: 11, weight: .medium))
+                    .foregroundColor(selectedTab == tab ? .white : (isHoveringTab == tab ? .primary : .secondary))
+                    .symbolEffect(.bounce, value: selectedTab == tab)
 
                 Text(tab.title)
-                    .font(.system(size: 10, weight: .semibold, design: .rounded))
-                    .foregroundColor(selectedTab == tab ? settings.accentColor.color : .secondary)
+                    .font(.system(size: 12, weight: .medium, design: .rounded))
+                    .foregroundColor(selectedTab == tab ? .white : (isHoveringTab == tab ? .primary : .secondary))
             }
             .frame(maxWidth: .infinity)
-            .padding(.vertical, 8)
+            .padding(.vertical, 7)
+            .padding(.horizontal, 12)
             .background(
                 ZStack {
                     if selectedTab == tab {
-                        RoundedRectangle(cornerRadius: 10, style: .continuous)
-                            .fill(settings.accentColor.color.opacity(0.1))
+                        RoundedRectangle(cornerRadius: 8, style: .continuous)
+                            .fill(Color.accentColor)
+                            .shadow(color: Color.accentColor.opacity(0.3), radius: 6, y: 2)
                             .matchedGeometryEffect(id: "settingsTab", in: tabNamespace)
+                    } else if isHoveringTab == tab {
+                        RoundedRectangle(cornerRadius: 8, style: .continuous)
+                            .fill(Color.primary.opacity(0.06))
                     }
                 }
             )
+            .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
+        .onHover { hovering in
+            withAnimation(.easeInOut(duration: 0.2)) {
+                isHoveringTab = hovering ? tab : nil
+            }
+        }
     }
 
     // MARK: - Tab Content
@@ -124,14 +99,18 @@ struct SettingsView: View {
         switch selectedTab {
         case .general:
             GeneralSettingsView(settings: settings)
-        case .appearance:
-            AppearanceSettingsView(settings: settings)
-        case .widgets:
-            WidgetsSettingsView(settings: settings)
-        case .shortcuts:
-            ShortcutsSettingsView(settings: settings)
+                .transition(.asymmetric(
+                    insertion: .opacity.combined(with: .scale(scale: 0.96).combined(with: .move(edge: .trailing))),
+                    removal: .opacity.combined(with: .scale(scale: 0.96).combined(with: .move(edge: .leading)))
+                ))
+                .id("general")
         case .about:
             AboutSettingsView()
+                .transition(.asymmetric(
+                    insertion: .opacity.combined(with: .scale(scale: 0.96).combined(with: .move(edge: .trailing))),
+                    removal: .opacity.combined(with: .scale(scale: 0.96).combined(with: .move(edge: .leading)))
+                ))
+                .id("about")
         }
     }
 }
@@ -139,9 +118,6 @@ struct SettingsView: View {
 // MARK: - Settings Tab Enum
 enum SettingsTab: String, CaseIterable, Identifiable {
     case general
-    case appearance
-    case widgets
-    case shortcuts
     case about
 
     var id: String { rawValue }
@@ -149,9 +125,6 @@ enum SettingsTab: String, CaseIterable, Identifiable {
     var title: String {
         switch self {
         case .general: return "General"
-        case .appearance: return "Appearance"
-        case .widgets: return "Widgets"
-        case .shortcuts: return "Shortcuts"
         case .about: return "About"
         }
     }
@@ -159,9 +132,6 @@ enum SettingsTab: String, CaseIterable, Identifiable {
     var icon: String {
         switch self {
         case .general: return "gearshape.fill"
-        case .appearance: return "paintbrush.fill"
-        case .widgets: return "square.grid.2x2.fill"
-        case .shortcuts: return "keyboard.fill"
         case .about: return "info.circle.fill"
         }
     }

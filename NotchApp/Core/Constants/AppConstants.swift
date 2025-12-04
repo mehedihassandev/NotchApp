@@ -17,14 +17,14 @@ enum AppConstants {
 
     // MARK: - Animation Durations
     enum Animation {
-        static let glowDuration: TimeInterval = 0.35
-        static let scaleDuration: TimeInterval = 0.4
+        static let glowDuration: TimeInterval = 0.5
+        static let scaleDuration: TimeInterval = 0.55
         static let contentDelay: TimeInterval = 0.25
-        static let scaleDelay: TimeInterval = 0.1
-        static let closeDelay: TimeInterval = 0.5
-        static let hoverFeedback: TimeInterval = 0.15
-        static let springResponse: Double = 0.35
-        static let springDamping: Double = 0.8
+        static let scaleDelay: TimeInterval = 0.12
+        static let closeDelay: TimeInterval = 0.0
+        static let hoverFeedback: TimeInterval = 0.2
+        static let springResponse: Double = 0.6
+        static let springDamping: Double = 0.78
     }
 
     // MARK: - Media Player

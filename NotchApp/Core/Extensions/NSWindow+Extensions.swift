@@ -9,7 +9,7 @@ extension NSWindow {
     /// - Parameters:
     ///   - newFrame: The target frame for the window
     ///   - duration: Animation duration (default: 0.3 seconds)
-    func smoothResize(to newFrame: NSRect, duration: TimeInterval = 0.3) {
+    func smoothResize(to newFrame: NSRect, duration: TimeInterval = 0.5) {
         NSAnimationContext.runAnimationGroup { context in
             context.duration = duration
             context.timingFunction = CAMediaTimingFunction(name: .easeInEaseOut)
@@ -19,7 +19,7 @@ extension NSWindow {
 
     /// Fades the window in smoothly
     /// - Parameter duration: Animation duration
-    func fadeIn(duration: TimeInterval = 0.4) {
+    func fadeIn(duration: TimeInterval = 0.55) {
         self.alphaValue = 0
         self.makeKeyAndOrderFront(nil)
 
@@ -34,7 +34,7 @@ extension NSWindow {
     /// - Parameters:
     ///   - duration: Animation duration
     ///   - completion: Closure to execute after animation completes
-    func fadeOut(duration: TimeInterval = 0.3, completion: (() -> Void)? = nil) {
+    func fadeOut(duration: TimeInterval = 0.5, completion: (() -> Void)? = nil) {
         NSAnimationContext.runAnimationGroup({ context in
             context.duration = duration
             context.timingFunction = CAMediaTimingFunction(name: .easeIn)

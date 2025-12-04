@@ -19,17 +19,27 @@ struct NotchBarView: View {
     @State private var selectedTab: NotchTab = .nook
     @State private var isMouseInside = false
 
+    // Track pending animation work items for cancellation
+    @State private var scaleWorkItem: DispatchWorkItem?
+    @State private var contentWorkItem: DispatchWorkItem?
+
     @Namespace private var tabNamespace
 
     // MARK: - Animation Constants
-    private let glowAnimation = Animation.easeInOut(duration: AppConstants.Animation.glowDuration)
+    private let glowAnimation = Animation.spring(
+        response: 0.6,
+        dampingFraction: 0.82,
+        blendDuration: 0
+    )
     private let scaleAnimation = Animation.spring(
-        response: AppConstants.Animation.scaleDuration,
-        dampingFraction: 0.8
+        response: 0.65,
+        dampingFraction: 0.78,
+        blendDuration: 0
     )
     private let contentAnimation = Animation.spring(
-        response: AppConstants.Animation.springResponse,
-        dampingFraction: AppConstants.Animation.springDamping
+        response: 0.7,
+        dampingFraction: 0.75,
+        blendDuration: 0
     )
 
     // MARK: - Body
@@ -68,6 +78,9 @@ extension NotchBarView {
         if hovering {
             expandNotch()
         } else {
+            // Cancel any pending expansion animations when mouse leaves
+            cancelPendingAnimations()
+
             // Don't collapse if dragging file
             if !notchState.isDraggingFile {
                 scheduleCollapse()
@@ -78,6 +91,7 @@ extension NotchBarView {
     private func handleFileDrag() {
         closeTimer?.invalidate()
         closeTimer = nil
+        cancelPendingAnimations()
 
         // Switch to Tray tab
         withAnimation(AppTheme.Animations.spring) {
@@ -93,27 +107,53 @@ extension NotchBarView {
         notchState.resetTrayTrigger()
     }
 
+    private func cancelPendingAnimations() {
+        scaleWorkItem?.cancel()
+        scaleWorkItem = nil
+        contentWorkItem?.cancel()
+        contentWorkItem = nil
+    }
+
     private func expandNotch() {
-        // Phase 1: Show glow effect
+        // Cancel any existing pending work
+        cancelPendingAnimations()
+
+        // Phase 1: Show glow and start scale simultaneously for smoother opening
         withAnimation(glowAnimation) {
             isHovering = true
             glowIntensity = 1
         }
 
-        // Phase 2: Scale to 100% after delay
-        DispatchQueue.main.asyncAfter(deadline: .now() + AppConstants.Animation.scaleDelay) {
-            withAnimation(scaleAnimation) {
-                scaleProgress = 1.0
+        // Phase 2: Scale to 100% with minimal delay for fluid transition
+        let scaleWork = DispatchWorkItem {
+            // Only proceed if mouse is still inside or dragging file
+            guard self.isMouseInside || self.notchState.isDraggingFile else {
+                // Mouse left early, trigger collapse
+                self.collapseNotch()
+                return
+            }
+            withAnimation(self.scaleAnimation) {
+                self.scaleProgress = 1.0
             }
         }
+        scaleWorkItem = scaleWork
+        DispatchQueue.main.asyncAfter(deadline: .now() + AppConstants.Animation.scaleDelay, execute: scaleWork)
 
-        // Phase 3: Show content after delay
-        DispatchQueue.main.asyncAfter(deadline: .now() + AppConstants.Animation.contentDelay) {
-            withAnimation(contentAnimation) {
-                showContent = true
-                notchState.isExpanded = true
+        // Phase 3: Show content after scale begins
+        let contentWork = DispatchWorkItem {
+            // Only proceed if mouse is still inside or dragging file
+            guard self.isMouseInside || self.notchState.isDraggingFile else {
+                // Mouse left early, trigger collapse
+                self.collapseNotch()
+                return
+            }
+            withAnimation(self.contentAnimation) {
+                self.showContent = true
+                self.notchState.isExpanded = true
             }
         }
+        contentWorkItem = contentWork
+        DispatchQueue.main.asyncAfter(deadline: .now() + AppConstants.Animation.contentDelay, execute: contentWork)
     }
 
     private func scheduleCollapse() {
@@ -130,27 +170,30 @@ extension NotchBarView {
     }
 
     private func collapseNotch() {
+        // Cancel any pending expansion work
+        cancelPendingAnimations()
+
         // Cancel if mouse came back or file is being dragged
         guard !isMouseInside && !notchState.isDraggingFile else { return }
 
-        // Smooth reverse animation sequence
-        withAnimation(.easeOut(duration: 0.25)) {
+        // Smooth reverse animation sequence with improved spring curves
+        withAnimation(.spring(response: 0.55, dampingFraction: 0.82)) {
             showContent = false
             notchState.isExpanded = false
         }
 
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
-            guard !self.isMouseInside else { return }
-            withAnimation(.easeOut(duration: 0.3)) {
-                scaleProgress = 0.5
+            guard !self.isMouseInside && !self.notchState.isDraggingFile else { return }
+            withAnimation(.spring(response: 0.6, dampingFraction: 0.78)) {
+                self.scaleProgress = 0.5
             }
         }
 
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.25) {
-            guard !self.isMouseInside else { return }
-            withAnimation(.easeOut(duration: 0.35)) {
-                isHovering = false
-                glowIntensity = 0
+            guard !self.isMouseInside && !self.notchState.isDraggingFile else { return }
+            withAnimation(.spring(response: 0.65, dampingFraction: 0.82)) {
+                self.isHovering = false
+                self.glowIntensity = 0
             }
             // Keep selectedTab as-is so it remembers last tab
         }
@@ -177,8 +220,8 @@ extension NotchBarView {
         .contentShape(NotchShape(topCornerRadius: 0, bottomCornerRadius: showContent ? 16 : 12))
         .offset(y: (isHovering || notchState.isDraggingFile) ? 0 : AppConstants.Window.collapsedOffset)
         .opacity((isHovering || notchState.isDraggingFile) ? 1.0 : 0.5)
-        .animation(.easeInOut(duration: 0.3), value: isHovering)
-        .animation(.easeInOut(duration: 0.3), value: notchState.isDraggingFile)
+        .animation(.spring(response: 0.55, dampingFraction: 0.8), value: isHovering)
+        .animation(.spring(response: 0.55, dampingFraction: 0.8), value: notchState.isDraggingFile)
     }
 
     private var notchBackground: some View {

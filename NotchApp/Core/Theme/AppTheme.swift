@@ -27,9 +27,9 @@ enum AppTheme {
         static let accentOrange = Color.orange
         static let accentYellow = Color.yellow
 
-        // Dynamic accent color from settings
+        // Accent color is now fixed to purple
         static var accent: Color {
-            SettingsManager.shared.accentColor.color
+            Color.purple
         }
 
         // UI element colors
@@ -40,7 +40,7 @@ enum AppTheme {
 
         // Gradients
         static var glowGradient: LinearGradient {
-            let accentColor = SettingsManager.shared.accentColor.color
+            let accentColor = Color.purple
             return LinearGradient(
                 colors: [
                     accentColor.opacity(0.6),
@@ -131,11 +131,15 @@ enum AppTheme {
     // MARK: - Animations
     enum Animations {
         static var spring: SwiftUI.Animation {
-            .spring(response: AppConstants.Animation.springResponse, dampingFraction: AppConstants.Animation.springDamping)
+            .spring(response: 0.6, dampingFraction: 0.78, blendDuration: 0)
         }
 
         static var springFast: SwiftUI.Animation {
-            .spring(response: 0.3, dampingFraction: 0.7)
+            .spring(response: 0.45, dampingFraction: 0.75, blendDuration: 0)
+        }
+
+        static var springSmooth: SwiftUI.Animation {
+            .spring(response: 0.7, dampingFraction: 0.8, blendDuration: 0)
         }
 
         static var easeOut: SwiftUI.Animation {
@@ -143,7 +147,7 @@ enum AppTheme {
         }
 
         static var hover: SwiftUI.Animation {
-            .easeInOut(duration: AppConstants.Animation.hoverFeedback)
+            .spring(response: 0.35, dampingFraction: 0.75, blendDuration: 0)
         }
     }
 }
