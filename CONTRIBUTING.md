@@ -8,61 +8,63 @@ Thank you for your interest in contributing to NotchApp! This document provides 
 NotchApp/
 ├── Core/                           # Core infrastructure
 │   ├── Constants/
-│   │   └── AppConstants.swift      # App-wide configuration values
+│   │   └── AppConstants.swift      # Window (580×400), Animation, MediaPlayer, Layout, Opacity
 │   ├── Extensions/
-│   │   ├── View+Extensions.swift   # SwiftUI view modifiers
-│   │   └── NSWindow+Extensions.swift
+│   │   ├── View+Extensions.swift   # cardStyle, glassStyle, hoverScale, pressEffect, standardShadow
+│   │   └── NSWindow+Extensions.swift # smoothResize, fadeIn/Out, NSScreen.notchHeight
 │   ├── Protocols/
-│   │   └── MediaControlling.swift  # Media control abstractions
+│   │   └── MediaControlling.swift  # MediaControlling protocol, MediaRemoteCommand enum, function types
 │   ├── Theme/
-│   │   └── AppTheme.swift          # Design tokens and colors
+│   │   └── AppTheme.swift          # Colors, Typography (rounded fonts), Shadows, Animations
 │   └── Utilities/
-│       ├── Logger.swift            # Logging utility
-│       └── HapticManager.swift     # Haptic feedback
+│       ├── Logger.swift            # AppLogger with Category enum and global convenience functions
+│       └── HapticManager.swift     # NSHapticFeedbackManager wrapper for Force Touch
 │
 ├── Models/
-│   └── MediaInfo.swift             # Media data model
+│   └── MediaInfo.swift             # Identifiable, Equatable model with progress, formatting, placeholder
 │
 ├── ViewModels/
-│   ├── MediaPlayerManager.swift    # Media control logic
-│   └── NotchState.swift            # Notch expansion state
+│   ├── MediaPlayerManager.swift    # MediaRemote.framework integration with CFBundle loading
+│   └── NotchState.swift            # Singleton ObservableObject, NotchTab enum (TabItem protocol)
 │
 ├── Views/
-│   ├── NotchBarView.swift          # Main notch interface
-│   ├── DashboardView.swift         # Media player dashboard
-│   └── TrayView.swift              # File tray view
+│   ├── NotchBarView.swift          # Main container with multi-phase animations (glow/scale/content)
+│   ├── DashboardView.swift         # Nook tab - AlbumArtworkWithBadge, PlaybackControlsRow, QuickActionPill
+│   └── TrayView.swift              # Tray tab - TrayItem, TrayStorageManager, AirDropState, TrayFileChip
 │
 ├── UI/
 │   └── Components/
 │       ├── Buttons/
-│       │   └── ActionButtons.swift # Reusable button components
+│       │   └── ActionButtons.swift # QuickActionPill (pill buttons), IconButton (circular buttons)
 │       ├── Effects/
-│       │   └── VisualEffectView.swift
+│       │   └── VisualEffectView.swift # NSViewRepresentable for NSVisualEffectView
 │       ├── Media/
-│       │   ├── AlbumArtworkView.swift
-│       │   ├── PlaybackControls.swift
-│       │   └── MusicBarsView.swift
+│       │   ├── AlbumArtworkView.swift # With placeholder gradient and optional badge
+│       │   ├── PlaybackControls.swift # PlaybackControlButton (sizes: small/medium/large)
+│       │   └── MusicBarsView.swift # Timer-based animated bars with configurable gradient
 │       ├── Navigation/
-│       │   └── TabSwitcher.swift
+│       │   └── TabSwitcher.swift   # Generic TabSwitcher<Tab: TabItem> with matchedGeometryEffect
 │       └── Shapes/
-│           └── NotchShape.swift
+│           └── NotchShape.swift    # Custom Shape with sharp top, rounded bottom corners
 │
 ├── Persistence/
-│   └── PersistenceController.swift # Core Data management
+│   └── PersistenceController.swift # Core Data stack with history tracking, preview support
 │
-├── NotchAppApp.swift               # App entry point
-└── NotchWindowController.swift     # Window management
+├── NotchAppApp.swift               # @main entry, AppDelegate (accessory activation policy)
+└── NotchWindowController.swift     # NotchWindow (NSWindow), DropTargetView (NSView), drag detection
 ```
 
 ## 🎨 Code Style Guidelines
 
 ### Swift Style
 
--   Use `MARK: -` comments to organize code sections
+-   Use `// MARK: -` comments to organize code sections
 -   Follow Apple's Swift naming conventions
--   Use `final` for classes that shouldn't be subclassed
+-   Use `final` for classes that shouldn't be subclassed (e.g., `final class AppDelegate`, `final class NotchWindow`)
 -   Prefer `private` access level by default
 -   Use meaningful variable and function names
+-   Use `@StateObject` for owned observable objects, `@ObservedObject` for passed-in objects
+-   Prefer composition via extensions to organize code (see NotchBarView)
 
 ### File Organization
 
@@ -77,26 +79,38 @@ import SwiftUI
 struct/class TypeName {
 
     // MARK: - Properties
+    @StateObject private var mediaManager = MediaPlayerManager()
+    @State private var isHovering = false
 
     // MARK: - Initialization
+    init(...) { }
 
     // MARK: - Body (for Views)
+    var body: some View { ... }
 
     // MARK: - Public Methods
 
     // MARK: - Private Methods
 }
 
-// MARK: - Extensions
+// MARK: - Extensions (for organizing view code)
+extension TypeName {
+    private var collapsedNotch: some View { ... }
+    private var expandedContent: some View { ... }
+}
 
 // MARK: - Preview
+#Preview {
+    TypeName()
+}
 ```
 
 ### Documentation
 
--   Add documentation comments (`///`) for public APIs
+-   Add documentation comments (`///`) for public APIs and types
 -   Include parameter descriptions for complex functions
 -   Use inline comments sparingly for non-obvious logic
+-   Global logging functions available: `logDebug()`, `logInfo()`, `logWarning()`, `logError()`
 
 ## 🧩 Component Guidelines
 
@@ -106,26 +120,78 @@ struct/class TypeName {
 2. Make configurable via parameters with sensible defaults
 3. Include `#Preview` for visual development
 4. Use `AppTheme` and `AppConstants` for styling
+5. Support both light interactions (hover) and press feedback
 
-Example:
+Example (based on actual `QuickActionPill`):
 
 ```swift
-struct MyComponent: View {
-    let title: String
-    let size: CGFloat
+struct QuickActionPill: View {
 
-    init(title: String, size: CGFloat = 44) {
+    // MARK: - Properties
+    let icon: String
+    let title: String
+    let iconColor: Color
+    let action: () -> Void
+
+    @State private var isPressed = false
+    @State private var isHovering = false
+
+    // MARK: - Initialization
+    init(
+        icon: String,
+        title: String,
+        iconColor: Color = .white,
+        action: @escaping () -> Void
+    ) {
+        self.icon = icon
         self.title = title
-        self.size = size
+        self.iconColor = iconColor
+        self.action = action
     }
 
+    // MARK: - Body
     var body: some View {
-        // Implementation using AppTheme colors
+        Button(action: handleTap) {
+            HStack(spacing: 6) {
+                Image(systemName: icon)
+                    .font(.system(size: 10, weight: .bold))
+                    .foregroundColor(iconColor)
+
+                Text(title)
+                    .font(AppTheme.Typography.body())
+                    .foregroundColor(AppTheme.Colors.textPrimary.opacity(0.9))
+            }
+            .padding(.horizontal, 12)
+            .padding(.vertical, 10)
+            .frame(maxWidth: .infinity)
+            .cardStyle(isHovering: isHovering)
+        }
+        .buttonStyle(.plain)
+        .pressEffect(isPressed)
+        .onHover { hovering in
+            withAnimation(AppTheme.Animations.hover) {
+                isHovering = hovering
+            }
+        }
+    }
+
+    // MARK: - Actions
+    private func handleTap() {
+        withAnimation(.spring(response: 0.2, dampingFraction: 0.6)) {
+            isPressed = true
+        }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+            isPressed = false
+            action()
+        }
     }
 }
 
 #Preview {
-    MyComponent(title: "Example")
+    QuickActionPill(icon: "sparkles", title: "Spotify", iconColor: .green) { }
+        .frame(width: 120)
+        .padding()
+        .background(Color.black)
 }
 ```
 
@@ -169,9 +235,14 @@ Use `AppConstants` for magic numbers:
 ## 🧪 Testing
 
 -   Test on both notch and non-notch MacBooks
--   Verify media controls with various apps (Spotify, Apple Music, YouTube)
--   Test hover interactions and animations
+-   Verify media controls with various apps (Spotify, Apple Music, YouTube, browser media)
+-   Test hover interactions and multi-phase animations
+-   Test file drag detection from Finder and other apps
+-   Verify AirDrop integration in TrayView
+-   Check tab switching between Nook and Tray with matched geometry
+-   Test collapsed state media display (artwork, title, music bars)
 -   Check for memory leaks with Instruments
+-   Verify window positioning on different screen sizes
 
 ## 📝 Pull Request Process
 
