@@ -13,6 +13,8 @@ final class NotchState: ObservableObject {
     // MARK: - Published Properties
     @Published var isExpanded: Bool = false
     @Published var isHovering: Bool = false
+    @Published var isDraggingFile: Bool = false
+    @Published var shouldShowTray: Bool = false
 
     // MARK: - Initialization
     private init() {}
@@ -32,6 +34,22 @@ final class NotchState: ObservableObject {
     /// Toggles the notch state
     func toggle() {
         isExpanded.toggle()
+    }
+
+    /// Called when a file drag enters the notch area
+    func fileDragEntered() {
+        isDraggingFile = true
+        shouldShowTray = true
+    }
+
+    /// Called when a file drag exits the notch area
+    func fileDragExited() {
+        isDraggingFile = false
+    }
+
+    /// Reset tray trigger after tab switch
+    func resetTrayTrigger() {
+        shouldShowTray = false
     }
 }
 

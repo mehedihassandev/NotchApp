@@ -8,6 +8,7 @@ import UniformTypeIdentifiers
 struct TrayView: View {
 
     // MARK: - State Properties
+    @ObservedObject private var notchState = NotchState.shared
     @State private var droppedFiles: [URL] = []
     @State private var isDropTargeted = false
     @State private var isAirDropHovering = false
@@ -39,23 +40,29 @@ extension TrayView {
         .padding(.vertical, 20)
         .frame(maxWidth: .infinity)
         .background(dropZoneBackground)
-        .hoverScale(isDropTargeted, scale: 1.01)
+        .hoverScale(isDropTargeted || notchState.isDraggingFile, scale: 1.01)
         .onDrop(of: [.fileURL], isTargeted: $isDropTargeted) { providers in
             handleDrop(providers: providers)
+            // Reset drag state after drop
+            DispatchQueue.main.async {
+                notchState.fileDragExited()
+            }
             return true
         }
     }
 
     private var emptyTrayState: some View {
         HStack(spacing: AppConstants.Layout.spacing) {
-            Image(systemName: "tray.fill")
+            Image(systemName: notchState.isDraggingFile ? "tray.and.arrow.down.fill" : "tray.fill")
                 .font(.system(size: 26, weight: .regular))
-                .foregroundColor(AppTheme.Colors.textQuaternary)
+                .foregroundColor(notchState.isDraggingFile ? AppTheme.Colors.accentBlue : AppTheme.Colors.textQuaternary)
+                .symbolEffect(.bounce, options: .repeating, value: notchState.isDraggingFile)
 
-            Text("Files Tray")
+            Text(notchState.isDraggingFile ? "Drop Files Here" : "Files Tray")
                 .font(AppTheme.Typography.headline(13))
-                .foregroundColor(AppTheme.Colors.textTertiary)
+                .foregroundColor(notchState.isDraggingFile ? AppTheme.Colors.textSecondary : AppTheme.Colors.textTertiary)
         }
+        .animation(AppTheme.Animations.spring, value: notchState.isDraggingFile)
     }
 
     private var filesScrollView: some View {
@@ -78,14 +85,20 @@ extension TrayView {
 
     private var dropZoneBackground: some View {
         RoundedRectangle(cornerRadius: AppConstants.Layout.padding, style: .continuous)
-            .fill(Color.black.opacity(0.15))
+            .fill(Color.black.opacity(notchState.isDraggingFile || isDropTargeted ? 0.25 : 0.15))
             .overlay(
                 RoundedRectangle(cornerRadius: AppConstants.Layout.padding, style: .continuous)
                     .strokeBorder(
                         style: StrokeStyle(lineWidth: 2, dash: [7, 5])
                     )
-                    .foregroundColor(.white.opacity(isDropTargeted ? 0.4 : 0.2))
+                    .foregroundColor(
+                        notchState.isDraggingFile || isDropTargeted ?
+                            AppTheme.Colors.accentBlue.opacity(0.6) :
+                            .white.opacity(0.2)
+                    )
             )
+            .animation(AppTheme.Animations.spring, value: notchState.isDraggingFile)
+            .animation(AppTheme.Animations.spring, value: isDropTargeted)
     }
 
     // MARK: - Actions

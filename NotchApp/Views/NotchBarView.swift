@@ -17,6 +17,7 @@ struct NotchBarView: View {
     @State private var scaleProgress: CGFloat = 0.5
     @State private var closeTimer: Timer?
     @State private var selectedTab: NotchTab = .nook
+    @State private var isMouseInside = false
 
     @Namespace private var tabNamespace
 
@@ -42,6 +43,17 @@ struct NotchBarView: View {
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
         }
+        .onChange(of: notchState.shouldShowTray) { _, shouldShow in
+            if shouldShow {
+                handleFileDrag()
+            }
+        }
+        .onChange(of: notchState.isDraggingFile) { _, isDragging in
+            if !isDragging && !isMouseInside {
+                // File drag ended outside the notch, collapse after delay
+                scheduleCollapse()
+            }
+        }
     }
 }
 
@@ -49,14 +61,36 @@ struct NotchBarView: View {
 extension NotchBarView {
 
     private func handleHover(_ hovering: Bool) {
+        isMouseInside = hovering
         closeTimer?.invalidate()
         closeTimer = nil
 
         if hovering {
             expandNotch()
         } else {
-            scheduleCollapse()
+            // Don't collapse if dragging file
+            if !notchState.isDraggingFile {
+                scheduleCollapse()
+            }
         }
+    }
+
+    private func handleFileDrag() {
+        closeTimer?.invalidate()
+        closeTimer = nil
+
+        // Switch to Tray tab
+        withAnimation(AppTheme.Animations.spring) {
+            selectedTab = .tray
+        }
+
+        // Expand the notch if not already expanded
+        if !showContent {
+            expandNotch()
+        }
+
+        // Reset the trigger
+        notchState.resetTrayTrigger()
     }
 
     private func expandNotch() {
@@ -83,32 +117,42 @@ extension NotchBarView {
     }
 
     private func scheduleCollapse() {
+        closeTimer?.invalidate()
         closeTimer = Timer.scheduledTimer(
             withTimeInterval: AppConstants.Animation.closeDelay,
             repeats: false
-        ) { _ in
-            collapseNotch()
+        ) { [self] _ in
+            // Double-check mouse is still outside before collapsing
+            if !isMouseInside && !notchState.isDraggingFile {
+                collapseNotch()
+            }
         }
     }
 
     private func collapseNotch() {
-        // Reverse animation sequence
-        withAnimation(contentAnimation) {
+        // Cancel if mouse came back or file is being dragged
+        guard !isMouseInside && !notchState.isDraggingFile else { return }
+
+        // Smooth reverse animation sequence
+        withAnimation(.easeOut(duration: 0.25)) {
             showContent = false
+            notchState.isExpanded = false
         }
 
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
-            withAnimation(scaleAnimation) {
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
+            guard !self.isMouseInside else { return }
+            withAnimation(.easeOut(duration: 0.3)) {
                 scaleProgress = 0.5
             }
         }
 
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) {
-            withAnimation(glowAnimation) {
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.25) {
+            guard !self.isMouseInside else { return }
+            withAnimation(.easeOut(duration: 0.35)) {
                 isHovering = false
                 glowIntensity = 0
-                notchState.isExpanded = false
             }
+            // Keep selectedTab as-is so it remembers last tab
         }
     }
 }
@@ -130,15 +174,28 @@ extension NotchBarView {
         .background(notchBackground)
         .overlay(notchBorder)
         .clipShape(NotchShape(topCornerRadius: 0, bottomCornerRadius: showContent ? 16 : 12))
-        .offset(y: isHovering ? 0 : AppConstants.Window.collapsedOffset)
-        .opacity(isHovering ? 1.0 : 0.5)
+        .contentShape(NotchShape(topCornerRadius: 0, bottomCornerRadius: showContent ? 16 : 12))
+        .offset(y: (isHovering || notchState.isDraggingFile) ? 0 : AppConstants.Window.collapsedOffset)
+        .opacity((isHovering || notchState.isDraggingFile) ? 1.0 : 0.5)
+        .animation(.easeInOut(duration: 0.3), value: isHovering)
+        .animation(.easeInOut(duration: 0.3), value: notchState.isDraggingFile)
     }
 
     private var notchBackground: some View {
         ZStack {
-            // Glow effect
+            // Glow effect - blue when dragging files, purple gradient otherwise
             NotchShape(topCornerRadius: 0, bottomCornerRadius: showContent ? 16 : 12)
                 .fill(
+                    notchState.isDraggingFile ?
+                    LinearGradient(
+                        colors: [
+                            AppTheme.Colors.accentBlue.opacity(0.7),
+                            Color.cyan.opacity(0.5),
+                            AppTheme.Colors.accentBlue.opacity(0.6)
+                        ],
+                        startPoint: .leading,
+                        endPoint: .trailing
+                    ) :
                     LinearGradient(
                         colors: [
                             Color.purple.opacity(0.6 * glowIntensity),
@@ -149,9 +206,10 @@ extension NotchBarView {
                         endPoint: .trailing
                     )
                 )
-                .blur(radius: 15 * glowIntensity)
-                .offset(y: 8 * glowIntensity)
+                .blur(radius: notchState.isDraggingFile ? 20 : 15 * glowIntensity)
+                .offset(y: notchState.isDraggingFile ? 10 : 8 * glowIntensity)
                 .scaleEffect(x: 0.95, y: 1.1)
+                .animation(AppTheme.Animations.spring, value: notchState.isDraggingFile)
 
             // Main black background
             NotchShape(topCornerRadius: 0, bottomCornerRadius: showContent ? 16 : 12)
@@ -183,14 +241,30 @@ extension NotchBarView {
 
     private var collapsedNotch: some View {
         HStack(spacing: 12) {
-            // Only show content when media is playing
-            if mediaManager.currentMedia.hasContent {
+            // Show file drop indicator when dragging files
+            if notchState.isDraggingFile {
+                collapsedDropIndicator
+            } else if mediaManager.currentMedia.hasContent {
+                // Only show content when media is playing
                 collapsedMediaContent
             }
         }
-        .padding(.horizontal, mediaManager.currentMedia.hasContent ? 18 : 0)
+        .padding(.horizontal, (mediaManager.currentMedia.hasContent || notchState.isDraggingFile) ? 18 : 0)
         .padding(.vertical, 10)
         .frame(minWidth: 180, minHeight: 36)
+    }
+
+    private var collapsedDropIndicator: some View {
+        HStack(spacing: 8) {
+            Image(systemName: "tray.and.arrow.down.fill")
+                .font(.system(size: 16, weight: .medium))
+                .foregroundColor(AppTheme.Colors.accentBlue)
+                .symbolEffect(.bounce, options: .repeating, value: notchState.isDraggingFile)
+
+            Text("Drop Files")
+                .font(AppTheme.Typography.body())
+                .foregroundColor(AppTheme.Colors.textSecondary)
+        }
     }
 
     private var collapsedMediaContent: some View {
