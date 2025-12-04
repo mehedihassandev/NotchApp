@@ -4,11 +4,22 @@ A beautifully designed macOS app that seamlessly integrates with your MacBook's 
 
 ## 📖 Documentation
 
+### User Guides
+
 -   **[QUICK_START.md](QUICK_START.md)** - Get started in 3 steps
 -   **[MUSIC_INTEGRATION.md](MUSIC_INTEGRATION.md)** - How music detection works
+-   **[VISUAL_GUIDE.md](VISUAL_GUIDE.md)** - Visual features & design system
+
+### Developer Guides
+
 -   **[ARCHITECTURE.md](ARCHITECTURE.md)** - System architecture & flow diagrams
--   **[VISUAL_SHOWCASE.md](VISUAL_SHOWCASE.md)** - Visual features & design system
--   **[IMPLEMENTATION_SUMMARY.md](IMPLEMENTATION_SUMMARY.md)** - Complete feature summary
+-   **[SETUP.md](SETUP.md)** - Development environment setup
+-   **[BUILD_AND_TEST.md](BUILD_AND_TEST.md)** - Build and test instructions
+-   **[CONTRIBUTING.md](CONTRIBUTING.md)** - Contribution guidelines
+
+### Community
+
+-   **[CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md)** - Community standards
 
 ## 🎵 **NEW: System-Wide Music Detection!**
 
@@ -241,10 +252,36 @@ NotchApp/
 └── NotchApp.entitlements        # Security entitlements
 ```
 
-## License
+## 🤝 Contributing
 
-This project is provided as-is for personal use and development.
+We welcome contributions from the community! Whether it's bug fixes, new features, or documentation improvements, your help is appreciated.
 
-## Credits
+### How to Contribute
+
+1. **Fork the repository**
+2. **Create a feature branch** (`git checkout -b feature/amazing-feature`)
+3. **Make your changes** and commit (`git commit -m 'Add amazing feature'`)
+4. **Push to your branch** (`git push origin feature/amazing-feature`)
+5. **Open a Pull Request**
+
+Please read our [CONTRIBUTING.md](CONTRIBUTING.md) for detailed guidelines and our [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md) for community standards.
+
+### Contributors
+
+Thanks to all the contributors who have helped make NotchApp better!
+
+<!-- ALL-CONTRIBUTORS-LIST:START -->
+<!-- This section will be automatically updated -->
+<!-- ALL-CONTRIBUTORS-LIST:END -->
+
+Want to see your name here? Check out [CONTRIBUTING.md](CONTRIBUTING.md) to get started!
+
+## 📄 License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+## 🙏 Credits
 
 Created for macOS using SwiftUI and AppKit.
+
+Inspired by NotchNook's beautiful design and seamless notch integration.
