@@ -1,6 +1,9 @@
 import SwiftUI
 import UniformTypeIdentifiers
 import Combine
+import QuickLookThumbnailing
+import AVFoundation
+import PDFKit
 
 // MARK: - Tray Item Model
 /// Represents an item stored in the Dropover-style tray
@@ -135,12 +138,18 @@ struct TrayView: View {
 
     // MARK: - Body
     var body: some View {
-        HStack(spacing: AppConstants.Layout.padding - 2) {
+        HStack(spacing: 24) {
             filesTraySection
             airDropSection
         }
-        .padding(.horizontal, AppConstants.Layout.padding)
-        .padding(.vertical, AppConstants.Layout.padding - 2)
+        .padding(.horizontal, 12)
+        .padding(.vertical, 24)
+        .background(
+            RoundedRectangle(cornerRadius: 32, style: .continuous)
+                .fill(Color.black.opacity(0.45))
+                .shadow(color: Color.black.opacity(0.18), radius: 18, x: 0, y: 8)
+        )
+        .frame(minHeight: 180)
     }
 }
 
@@ -148,17 +157,18 @@ struct TrayView: View {
 extension TrayView {
 
     private var filesTraySection: some View {
-        HStack(spacing: AppConstants.Layout.spacing) {
+        HStack(spacing: 0) {
             if storage.items.isEmpty {
                 emptyTrayState
             } else {
                 filesScrollView
             }
-            Spacer()
+            // Removed Spacer to reduce left area
         }
-        .padding(.horizontal, 20)
-        .padding(.vertical, 20)
+        .padding(.horizontal, storage.items.isEmpty ? 8 : 0)
+        .padding(.vertical, storage.items.isEmpty ? 32 : 18)
         .frame(maxWidth: .infinity)
+        .frame(height: 140)
         .background(dropZoneBackground)
         .hoverScale(isDropTargeted || notchState.isDraggingFile, scale: 1.01)
         .onDrop(of: [.fileURL, .url, .text], isTargeted: $isDropTargeted) { providers in
@@ -168,25 +178,33 @@ extension TrayView {
             }
             return true
         }
+        .onHover { hovering in
+            if hovering {
+                NSApp.activate(ignoringOtherApps: true)
+            }
+        }
     }
 
     private var emptyTrayState: some View {
-        HStack(spacing: AppConstants.Layout.spacing) {
+        VStack(spacing: 14) {
             Image(systemName: notchState.isDraggingFile ? "tray.and.arrow.down.fill" : "tray.fill")
-                .font(.system(size: 26, weight: .regular))
+                .font(.system(size: 32, weight: .semibold))
                 .foregroundColor(notchState.isDraggingFile ? AppTheme.Colors.accentBlue : AppTheme.Colors.textQuaternary)
                 .symbolEffect(.bounce, options: .repeating, value: notchState.isDraggingFile)
+                .shadow(color: Color.black.opacity(0.18), radius: 8, x: 0, y: 2)
 
             Text(notchState.isDraggingFile ? "Drop Files Here" : "Files Tray")
-                .font(AppTheme.Typography.headline(13))
+                .font(.system(size: 16, weight: .semibold, design: .rounded))
                 .foregroundColor(notchState.isDraggingFile ? AppTheme.Colors.textSecondary : AppTheme.Colors.textTertiary)
+                .padding(.top, 2)
         }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
         .animation(AppTheme.Animations.spring, value: notchState.isDraggingFile)
     }
 
     private var filesScrollView: some View {
         ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: AppConstants.Layout.smallSpacing + 4) {
+            HStack(spacing: 0) {
                 ForEach(storage.items) { item in
                     TrayFileChip(
                         item: item,
@@ -201,9 +219,10 @@ extension TrayView {
                     )
                 }
             }
-            .padding(.top, 12) // Add top padding for action buttons
-            .padding(.trailing, 8) // Extra trailing space
+            .padding(.vertical, 12)
+            .padding(.horizontal, 8)
         }
+        .clipped()
     }
 
     private var dropZoneBackground: some View {
@@ -324,7 +343,7 @@ extension TrayView {
             }
             .padding(.horizontal, 16)
             .padding(.vertical, 16)
-            .frame(width: 140)
+            .frame(width: 140, height: 140) // Match Files Tray height
             .background(airDropEnhancedBackground)
             .scaleEffect(isAirDropDropTargeted ? 1.05 : (isAirDropHovering ? 1.02 : 1.0))
             .animation(.spring(response: 0.3, dampingFraction: 0.7), value: isAirDropDropTargeted)
@@ -333,6 +352,9 @@ extension TrayView {
         .buttonStyle(.plain)
         .onHover { hovering in
             isAirDropHovering = hovering
+            if hovering {
+                NSApp.activate(ignoringOtherApps: true)
+            }
         }
     }
 
@@ -581,118 +603,282 @@ struct TrayFileChip: View {
     let onDelete: () -> Void
 
     @State private var fileIcon: NSImage?
-    @State private var isHovering = false
+    @State private var fileThumbnail: NSImage?
+    @State private var fileType: FilePreviewType = .unknown
     @State private var isDragging = false
 
     // MARK: - Body
     var body: some View {
-        Button(action: onTap) {
-            ZStack(alignment: .topTrailing) {
+        ZStack {
+            Button(action: onTap) {
                 chipContent
+                    .background(
+                        RoundedRectangle(cornerRadius: 20, style: .continuous)
+                            .fill(Color.white.opacity(0.1))
+                    )
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 20, style: .continuous)
+                            .strokeBorder(Color.white.opacity(0.1), lineWidth: 1)
+                    )
+                    .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+            }
+            .buttonStyle(.plain)
+            .opacity(isDragging ? 0.5 : 1.0)
+            .frame(width: 80, height: 110) // Increased height
+            .clipped()
+            .onDrag {
+                isDragging = true
+                let provider = NSItemProvider(object: item.url as NSURL)
+                DispatchQueue.main.async {
+                    startDragSessionObserver()
+                }
+                return provider
+            }
+            .contextMenu {
+                Button(action: onTap) {
+                    Label("Open", systemImage: "arrow.up.forward.app")
+                }
+                Button(action: shareViaAirDrop) {
+                    Label("Share via AirDrop", systemImage: "airplayaudio")
+                }
+                Divider()
+                Button(action: onDelete) {
+                    Label("Delete", systemImage: "trash")
+                }
+            }
+            .onAppear {
+                loadFileData()
+            }
 
-                if isHovering && !isDragging {
-                    actionButtons
+            // Close button outside top-right
+            if !isDragging {
+                VStack {
+                    HStack {
+                        Spacer()
+                        actionButtons
+                    }
+                    Spacer()
                 }
-            }
-            .hoverScale(isHovering && !isDragging, scale: 1.05)
-        }
-        .buttonStyle(.plain)
-        .opacity(isDragging ? 0.5 : 1.0)
-        .onDrag {
-            isDragging = true
-            // Return the file URL for dragging to other apps
-            let provider = NSItemProvider(object: item.url as NSURL)
-            return provider
-        }
-        .onHover { hovering in
-            withAnimation(AppTheme.Animations.hover) {
-                isHovering = hovering
-                if !hovering {
-                    isDragging = false
-                }
+                .frame(width: 90, height: 115) // Increased height for close button area
             }
         }
-        .onAppear {
-            loadFileIcon()
+        .frame(width: 90, height: 115) // Increased height for ZStack
+    }
+
+    // MARK: - Drag Session Observer
+    private func startDragSessionObserver() {
+        // After a short delay, check if the item is still present in the tray
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.8) {
+            // If the item is no longer in the tray, do nothing
+            // If the item is still in the tray, remove it (assume drag out)
+            if let storage = TrayStorageManager.shared as? TrayStorageManager {
+                if storage.items.contains(where: { $0.id == item.id }) {
+                    onDelete()
+                }
+            }
         }
     }
 
     // MARK: - Subviews
 
     private var chipContent: some View {
-        HStack(spacing: 6) {
+        VStack(spacing: 8) { // Slightly more spacing for taller chip
             fileIconView
 
             Text(item.url.deletingPathExtension().lastPathComponent)
-                .font(AppTheme.Typography.caption())
-                .foregroundColor(AppTheme.Colors.textSecondary)
-                .lineLimit(1)
-                .frame(maxWidth: 60)
+                .font(.system(size: 8, weight: .medium))
+                .foregroundColor(.white.opacity(0.95))
+                .lineLimit(2)
+                .multilineTextAlignment(.center)
+                .frame(maxWidth: 60, minHeight: 20) // Ensure text area is a bit taller
         }
-        .padding(.horizontal, AppConstants.Layout.smallSpacing)
-        .padding(.vertical, 6)
-        .cardStyle(isHovering: isHovering, cornerRadius: AppConstants.Layout.smallCornerRadius)
+        .padding(.horizontal, 6)
+        .padding(.vertical, 10) // More vertical padding for height
     }
 
     private var fileIconView: some View {
         Group {
-            if item.url.isFileURL {
-                if let icon = fileIcon {
-                    Image(nsImage: icon)
-                        .resizable()
-                        .aspectRatio(contentMode: .fit)
-                        .frame(width: 24, height: 24)
-                } else {
-                    Image(systemName: "doc.fill")
-                        .font(.system(size: 16))
-                        .foregroundColor(AppTheme.Colors.textTertiary)
+            if let thumbnail = fileThumbnail {
+                // Show actual thumbnail preview
+                Image(nsImage: thumbnail)
+                    .resizable()
+                    .aspectRatio(contentMode: .fill)
+                    .frame(width: 40, height: 40)
+                    .clipShape(RoundedRectangle(cornerRadius: 7, style: .continuous))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 7, style: .continuous)
+                            .stroke(Color.white.opacity(0.4), lineWidth: 1.5)
+                    )
+            } else if item.url.isFileURL {
+                // Show file type specific icon with color
+                ZStack {
+                    RoundedRectangle(cornerRadius: 7, style: .continuous)
+                        .fill(fileType.backgroundColor)
+                        .frame(width: 40, height: 40)
+
+                    Image(systemName: fileType.iconName)
+                        .font(.system(size: 16, weight: .semibold))
+                        .foregroundColor(.white)
                 }
             } else {
-                Image(systemName: "link")
-                    .font(.system(size: 16))
-                    .foregroundColor(AppTheme.Colors.accentBlue)
+                // Web URL icon
+                ZStack {
+                    RoundedRectangle(cornerRadius: 7, style: .continuous)
+                        .fill(AppTheme.Colors.accentBlue.opacity(0.8))
+                        .frame(width: 40, height: 40)
+
+                    Image(systemName: "link")
+                        .font(.system(size: 20, weight: .semibold))
+                        .foregroundColor(.white)
+                }
             }
         }
     }
 
     private var actionButtons: some View {
-        HStack(spacing: 2) {
-            // AirDrop button
-            Button(action: shareViaAirDrop) {
-                Image(systemName: "airplayaudio")
-                    .font(.system(size: 10, weight: .medium))
-                    .foregroundStyle(.white, AppTheme.Colors.accentBlue)
-                    .frame(width: 16, height: 16)
-                    .background(
-                        Circle()
-                            .fill(AppTheme.Colors.accentBlue)
-                    )
-            }
-            .buttonStyle(.plain)
-
-            // Delete button
-            Button(action: onDelete) {
-                Image(systemName: "xmark")
-                    .font(.system(size: 8, weight: .bold))
-                    .foregroundColor(.white)
-                    .frame(width: 16, height: 16)
-                    .background(
-                        Circle()
-                            .fill(Color.red.opacity(0.9))
-                    )
-            }
-            .buttonStyle(.plain)
+        Button(action: onDelete) {
+            Image(systemName: "xmark")
+                .font(.system(size: 10, weight: .bold))
+                .foregroundColor(Color.black.opacity(0.8))
+                .frame(width: 14, height: 14) // Smaller close button
+                .background(
+                    Circle()
+                        .fill(Color.white.opacity(0.95))
+                        .shadow(color: Color.black.opacity(0.18), radius: 1, x: 0, y: 1)
+                )
         }
-        .offset(x: 8, y: -8)
+        .buttonStyle(.plain)
+        .padding(.top, -2)
+        .padding(.trailing, -2) // Less negative padding for smaller button
         .transition(.scale.combined(with: .opacity))
     }
 
     // MARK: - Helpers
 
-    private func loadFileIcon() {
-        if item.url.isFileURL {
-            fileIcon = NSWorkspace.shared.icon(forFile: item.url.path)
+    private func loadFileData() {
+        guard item.url.isFileURL else { return }
+
+        // Determine file type
+        fileType = FilePreviewType.detect(from: item.url)
+
+        // Load system icon as fallback
+        fileIcon = NSWorkspace.shared.icon(forFile: item.url.path)
+
+        // Generate thumbnail based on file type
+        generateThumbnail(for: item.url)
+    }
+
+    private func generateThumbnail(for url: URL) {
+        // Try different thumbnail generation methods based on file type
+        switch fileType {
+        case .image:
+            generateImageThumbnail(for: url)
+        case .video:
+            generateVideoThumbnail(for: url)
+        case .pdf:
+            generatePDFThumbnail(for: url)
+        default:
+            // Use QuickLook for other file types
+            generateQuickLookThumbnail(for: url)
         }
+    }
+
+    private func generateImageThumbnail(for url: URL) {
+        DispatchQueue.global(qos: .userInitiated).async {
+            if let image = NSImage(contentsOf: url) {
+                let thumbnail = self.resizeImage(image, toSize: CGSize(width: 200, height: 200))
+                DispatchQueue.main.async {
+                    self.fileThumbnail = thumbnail
+                }
+            } else {
+                // Fallback to QuickLook
+                self.generateQuickLookThumbnail(for: url)
+            }
+        }
+    }
+
+    private func generateVideoThumbnail(for url: URL) {
+        DispatchQueue.global(qos: .userInitiated).async {
+            let asset = AVAsset(url: url)
+            let imageGenerator = AVAssetImageGenerator(asset: asset)
+            imageGenerator.appliesPreferredTrackTransform = true
+            imageGenerator.maximumSize = CGSize(width: 200, height: 200)
+
+            let time = CMTime(seconds: 1.0, preferredTimescale: 600)
+
+            do {
+                let cgImage = try imageGenerator.copyCGImage(at: time, actualTime: nil)
+                let thumbnail = NSImage(cgImage: cgImage, size: CGSize(width: 200, height: 200))
+                DispatchQueue.main.async {
+                    self.fileThumbnail = thumbnail
+                }
+            } catch {
+                print("Error generating video thumbnail: \(error.localizedDescription)")
+                // Fallback to QuickLook
+                self.generateQuickLookThumbnail(for: url)
+            }
+        }
+    }
+
+    private func generatePDFThumbnail(for url: URL) {
+        DispatchQueue.global(qos: .userInitiated).async {
+            if let pdfDocument = PDFDocument(url: url),
+               let firstPage = pdfDocument.page(at: 0) {
+                let pageRect = firstPage.bounds(for: .mediaBox)
+                let thumbnail = NSImage(size: CGSize(width: 200, height: 200))
+
+                thumbnail.lockFocus()
+                if let context = NSGraphicsContext.current?.cgContext {
+                    context.setFillColor(NSColor.white.cgColor)
+                    context.fill(CGRect(origin: .zero, size: thumbnail.size))
+
+                    context.saveGState()
+                    let scale = min(200.0 / pageRect.width, 200.0 / pageRect.height)
+                    context.scaleBy(x: scale, y: scale)
+                    firstPage.draw(with: .mediaBox, to: context)
+                    context.restoreGState()
+                }
+                thumbnail.unlockFocus()
+
+                DispatchQueue.main.async {
+                    self.fileThumbnail = thumbnail
+                }
+            } else {
+                // Fallback to QuickLook
+                self.generateQuickLookThumbnail(for: url)
+            }
+        }
+    }
+
+    private func generateQuickLookThumbnail(for url: URL) {
+        let size = CGSize(width: 200, height: 200)
+        let request = QLThumbnailGenerator.Request(
+            fileAt: url,
+            size: size,
+            scale: NSScreen.main?.backingScaleFactor ?? 1.0,
+            representationTypes: .all
+        )
+
+        QLThumbnailGenerator.shared.generateBestRepresentation(for: request) { thumbnail, error in
+            if let thumbnail = thumbnail {
+                DispatchQueue.main.async {
+                    self.fileThumbnail = thumbnail.nsImage
+                }
+            } else if let error = error {
+                print("Error generating QuickLook thumbnail: \(error.localizedDescription)")
+            }
+        }
+    }
+
+    private func resizeImage(_ image: NSImage, toSize size: CGSize) -> NSImage {
+        let thumbnail = NSImage(size: size)
+        thumbnail.lockFocus()
+        image.draw(in: CGRect(origin: .zero, size: size),
+                   from: CGRect(origin: .zero, size: image.size),
+                   operation: .copy,
+                   fraction: 1.0)
+        thumbnail.unlockFocus()
+        return thumbnail
     }
 
     private func shareViaAirDrop() {
@@ -718,9 +904,106 @@ struct TrayFileChip: View {
     }
 }
 
+// MARK: - File Preview Type
+/// Enumeration of different file types for preview generation
+
+enum FilePreviewType {
+    case image
+    case video
+    case pdf
+    case zip
+    case audio
+    case document
+    case code
+    case unknown
+
+    static func detect(from url: URL) -> FilePreviewType {
+        let fileExtension = url.pathExtension.lowercased()
+
+        // Image formats
+        if ["jpg", "jpeg", "png", "gif", "bmp", "tiff", "tif", "heic", "heif", "webp", "svg"].contains(fileExtension) {
+            return .image
+        }
+
+        // Video formats
+        if ["mp4", "mov", "avi", "mkv", "m4v", "mpg", "mpeg", "wmv", "flv", "webm"].contains(fileExtension) {
+            return .video
+        }
+
+        // PDF
+        if fileExtension == "pdf" {
+            return .pdf
+        }
+
+        // Archive formats
+        if ["zip", "rar", "7z", "tar", "gz", "bz2", "xz", "dmg", "pkg"].contains(fileExtension) {
+            return .zip
+        }
+
+        // Audio formats
+        if ["mp3", "wav", "aac", "m4a", "flac", "ogg", "wma", "aiff", "alac"].contains(fileExtension) {
+            return .audio
+        }
+
+        // Document formats
+        if ["doc", "docx", "xls", "xlsx", "ppt", "pptx", "pages", "numbers", "key", "txt", "rtf"].contains(fileExtension) {
+            return .document
+        }
+
+        // Code formats
+        if ["swift", "py", "js", "ts", "java", "cpp", "c", "h", "m", "html", "css", "json", "xml", "yml", "yaml"].contains(fileExtension) {
+            return .code
+        }
+
+        return .unknown
+    }
+
+    var iconName: String {
+        switch self {
+        case .image:
+            return "photo.fill"
+        case .video:
+            return "video.fill"
+        case .pdf:
+            return "doc.text.fill"
+        case .zip:
+            return "doc.zipper"
+        case .audio:
+            return "music.note"
+        case .document:
+            return "doc.fill"
+        case .code:
+            return "chevron.left.forwardslash.chevron.right"
+        case .unknown:
+            return "doc.fill"
+        }
+    }
+
+    var backgroundColor: Color {
+        switch self {
+        case .image:
+            return Color.green.opacity(0.8)
+        case .video:
+            return Color.purple.opacity(0.8)
+        case .pdf:
+            return Color.red.opacity(0.8)
+        case .zip:
+            return Color.orange.opacity(0.8)
+        case .audio:
+            return Color.pink.opacity(0.8)
+        case .document:
+            return Color.blue.opacity(0.8)
+        case .code:
+            return Color.indigo.opacity(0.8)
+        case .unknown:
+            return Color.gray.opacity(0.8)
+        }
+    }
+}
+
 // MARK: - Preview
 #Preview {
     TrayView()
-        .frame(width: 500, height: 100)
+        .frame(width: 500, height: 160)
         .background(Color.black)
 }
