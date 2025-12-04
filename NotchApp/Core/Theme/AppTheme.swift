@@ -27,6 +27,11 @@ enum AppTheme {
         static let accentOrange = Color.orange
         static let accentYellow = Color.yellow
 
+        // Dynamic accent color from settings
+        static var accent: Color {
+            SettingsManager.shared.accentColor.color
+        }
+
         // UI element colors
         static let cardBackground = Color.white.opacity(0.06)
         static let cardBackgroundHover = Color.white.opacity(0.12)
@@ -35,11 +40,12 @@ enum AppTheme {
 
         // Gradients
         static var glowGradient: LinearGradient {
-            LinearGradient(
+            let accentColor = SettingsManager.shared.accentColor.color
+            return LinearGradient(
                 colors: [
-                    accentPurple.opacity(0.6),
+                    accentColor.opacity(0.6),
                     accentBlue.opacity(0.7),
-                    accentIndigo.opacity(0.5)
+                    accentColor.opacity(0.5)
                 ],
                 startPoint: .leading,
                 endPoint: .trailing

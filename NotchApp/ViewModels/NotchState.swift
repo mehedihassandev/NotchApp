@@ -15,6 +15,7 @@ final class NotchState: ObservableObject {
     @Published var isHovering: Bool = false
     @Published var isDraggingFile: Bool = false
     @Published var shouldShowTray: Bool = false
+    @Published var isSettingsPresented: Bool = false
 
     // MARK: - Initialization
     private init() {}
@@ -50,6 +51,16 @@ final class NotchState: ObservableObject {
     /// Reset tray trigger after tab switch
     func resetTrayTrigger() {
         shouldShowTray = false
+    }
+
+    /// Opens the settings modal
+    func openSettings() {
+        isSettingsPresented = true
+    }
+
+    /// Closes the settings modal
+    func closeSettings() {
+        isSettingsPresented = false
     }
 }
 

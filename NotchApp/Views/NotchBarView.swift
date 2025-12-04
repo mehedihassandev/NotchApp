@@ -358,7 +358,7 @@ extension NotchBarView {
 
             // Settings button
             IconButton(icon: "gearshape.fill") {
-                // Settings action
+                SettingsWindowOpener.open()
             }
         }
         .padding(.horizontal, 20)
