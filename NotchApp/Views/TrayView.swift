@@ -1,132 +1,141 @@
 import SwiftUI
 import UniformTypeIdentifiers
 
+// MARK: - Tray View
+/// A file drop zone and quick action tray for the notch interface
+/// Supports drag-and-drop file management and AirDrop access
+
 struct TrayView: View {
+
+    // MARK: - State Properties
     @State private var droppedFiles: [URL] = []
     @State private var isDropTargeted = false
     @State private var isAirDropHovering = false
 
+    // MARK: - Body
     var body: some View {
-        HStack(spacing: 14) {
-            // Files Tray - Drop Zone
+        HStack(spacing: AppConstants.Layout.padding - 2) {
             filesTraySection
-
-            // AirDrop Section
             airDropSection
         }
-        .padding(.horizontal, 16)
-        .padding(.vertical, 14)
+        .padding(.horizontal, AppConstants.Layout.padding)
+        .padding(.vertical, AppConstants.Layout.padding - 2)
     }
+}
+
+// MARK: - Files Tray Section
+extension TrayView {
 
     private var filesTraySection: some View {
-        HStack(spacing: 16) {
+        HStack(spacing: AppConstants.Layout.spacing) {
             if droppedFiles.isEmpty {
-                // Empty state - icon and label
-                Image(systemName: "tray.fill")
-                    .font(.system(size: 26, weight: .regular))
-                    .foregroundColor(.white.opacity(0.4))
-
-                Text("Files Tray")
-                    .font(.system(size: 13, weight: .medium, design: .rounded))
-                    .foregroundColor(.white.opacity(0.5))
+                emptyTrayState
             } else {
-                // Show dropped files horizontally
-                ScrollView(.horizontal, showsIndicators: false) {
-                    HStack(spacing: 8) {
-                        ForEach(droppedFiles, id: \.self) { fileURL in
-                            TrayFileChip(fileURL: fileURL, onTap: {
-                                NSWorkspace.shared.open(fileURL)
-                            }, onDelete: {
-                                withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
-                                    droppedFiles.removeAll { $0 == fileURL }
-                                }
-                            })
-                        }
-                    }
-                }
+                filesScrollView
             }
-
             Spacer()
         }
         .padding(.horizontal, 20)
         .padding(.vertical, 20)
         .frame(maxWidth: .infinity)
-        .background(
-            RoundedRectangle(cornerRadius: 16, style: .continuous)
-                .fill(Color.black.opacity(0.15))
-                .overlay(
-                    RoundedRectangle(cornerRadius: 16, style: .continuous)
-                        .strokeBorder(
-                            style: StrokeStyle(lineWidth: 2, dash: [7, 5])
-                        )
-                        .foregroundColor(.white.opacity(isDropTargeted ? 0.4 : 0.2))
-                )
-        )
-        .scaleEffect(isDropTargeted ? 1.01 : 1.0)
-        .animation(.spring(response: 0.3, dampingFraction: 0.7), value: isDropTargeted)
+        .background(dropZoneBackground)
+        .hoverScale(isDropTargeted, scale: 1.01)
         .onDrop(of: [.fileURL], isTargeted: $isDropTargeted) { providers in
             handleDrop(providers: providers)
             return true
         }
     }
 
-    private var airDropSection: some View {
-        Button(action: {
-            // Open AirDrop via Finder
-            let task = Process()
-            task.launchPath = "/usr/bin/open"
-            task.arguments = ["-b", "com.apple.finder", "airdrop://"]
-            try? task.run()
-        }) {
-            HStack(spacing: 14) {
-                // AirDrop Icon - Concentric rings
-                ZStack {
-                    ForEach(0..<3, id: \.self) { index in
-                        Circle()
-                            .stroke(
-                                Color.blue.opacity(0.8 - Double(index) * 0.2),
-                                lineWidth: 2
-                            )
-                            .frame(
-                                width: CGFloat(12 + index * 9),
-                                height: CGFloat(12 + index * 9)
-                            )
-                    }
+    private var emptyTrayState: some View {
+        HStack(spacing: AppConstants.Layout.spacing) {
+            Image(systemName: "tray.fill")
+                .font(.system(size: 26, weight: .regular))
+                .foregroundColor(AppTheme.Colors.textQuaternary)
 
-                    Circle()
-                        .fill(Color.blue)
-                        .frame(width: 5, height: 5)
+            Text("Files Tray")
+                .font(AppTheme.Typography.headline(13))
+                .foregroundColor(AppTheme.Colors.textTertiary)
+        }
+    }
+
+    private var filesScrollView: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: AppConstants.Layout.smallSpacing) {
+                ForEach(droppedFiles, id: \.self) { fileURL in
+                    TrayFileChip(
+                        fileURL: fileURL,
+                        onTap: {
+                            NSWorkspace.shared.open(fileURL)
+                        },
+                        onDelete: {
+                            removeFile(fileURL)
+                        }
+                    )
                 }
-                .frame(width: 36, height: 36)
+            }
+        }
+    }
+
+    private var dropZoneBackground: some View {
+        RoundedRectangle(cornerRadius: AppConstants.Layout.padding, style: .continuous)
+            .fill(Color.black.opacity(0.15))
+            .overlay(
+                RoundedRectangle(cornerRadius: AppConstants.Layout.padding, style: .continuous)
+                    .strokeBorder(
+                        style: StrokeStyle(lineWidth: 2, dash: [7, 5])
+                    )
+                    .foregroundColor(.white.opacity(isDropTargeted ? 0.4 : 0.2))
+            )
+    }
+
+    // MARK: - Actions
+
+    private func handleDrop(providers: [NSItemProvider]) {
+        for provider in providers {
+            _ = provider.loadObject(ofClass: URL.self) { url, error in
+                if let url = url {
+                    DispatchQueue.main.async {
+                        addFile(url)
+                    }
+                }
+            }
+        }
+    }
+
+    private func addFile(_ url: URL) {
+        guard !droppedFiles.contains(url) else { return }
+
+        withAnimation(AppTheme.Animations.spring) {
+            droppedFiles.append(url)
+        }
+    }
+
+    private func removeFile(_ url: URL) {
+        withAnimation(AppTheme.Animations.springFast) {
+            droppedFiles.removeAll { $0 == url }
+        }
+    }
+}
+
+// MARK: - AirDrop Section
+extension TrayView {
+
+    private var airDropSection: some View {
+        Button(action: openAirDrop) {
+            HStack(spacing: AppConstants.Layout.padding - 2) {
+                airDropIcon
 
                 Text("AirDrop")
-                    .font(.system(size: 14, weight: .semibold, design: .rounded))
-                    .foregroundColor(.white.opacity(0.9))
+                    .font(AppTheme.Typography.headline())
+                    .foregroundColor(AppTheme.Colors.textPrimary.opacity(0.9))
 
                 Spacer()
             }
             .padding(.horizontal, 18)
             .padding(.vertical, 20)
             .frame(width: 160)
-            .background(
-                RoundedRectangle(cornerRadius: 16, style: .continuous)
-                    .fill(
-                        LinearGradient(
-                            colors: [
-                                Color(red: 0.12, green: 0.18, blue: 0.32).opacity(isAirDropHovering ? 1.0 : 0.8),
-                                Color(red: 0.08, green: 0.12, blue: 0.28).opacity(isAirDropHovering ? 1.0 : 0.8)
-                            ],
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
-                        )
-                    )
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 16, style: .continuous)
-                            .stroke(Color.blue.opacity(isAirDropHovering ? 0.4 : 0.2), lineWidth: 1)
-                    )
-            )
-            .scaleEffect(isAirDropHovering ? 1.02 : 1.0)
-            .animation(.spring(response: 0.3, dampingFraction: 0.7), value: isAirDropHovering)
+            .background(airDropBackground)
+            .hoverScale(isAirDropHovering)
         }
         .buttonStyle(.plain)
         .onHover { hovering in
@@ -134,25 +143,58 @@ struct TrayView: View {
         }
     }
 
-    private func handleDrop(providers: [NSItemProvider]) {
-        for provider in providers {
-            _ = provider.loadObject(ofClass: URL.self) { url, error in
-                if let url = url {
-                    DispatchQueue.main.async {
-                        if !droppedFiles.contains(url) {
-                            withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
-                                droppedFiles.append(url)
-                            }
-                        }
-                    }
-                }
+    private var airDropIcon: some View {
+        ZStack {
+            // Concentric rings
+            ForEach(0..<3, id: \.self) { index in
+                Circle()
+                    .stroke(
+                        AppTheme.Colors.accentBlue.opacity(0.8 - Double(index) * 0.2),
+                        lineWidth: 2
+                    )
+                    .frame(
+                        width: CGFloat(12 + index * 9),
+                        height: CGFloat(12 + index * 9)
+                    )
             }
+
+            // Center dot
+            Circle()
+                .fill(AppTheme.Colors.accentBlue)
+                .frame(width: 5, height: 5)
         }
+        .frame(width: 36, height: 36)
+    }
+
+    private var airDropBackground: some View {
+        RoundedRectangle(cornerRadius: AppConstants.Layout.padding, style: .continuous)
+            .fill(
+                AppTheme.Colors.airDropGradient
+                    .opacity(isAirDropHovering ? 1.0 : 0.8)
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: AppConstants.Layout.padding, style: .continuous)
+                    .stroke(
+                        AppTheme.Colors.accentBlue.opacity(isAirDropHovering ? 0.4 : 0.2),
+                        lineWidth: 1
+                    )
+            )
+    }
+
+    private func openAirDrop() {
+        let task = Process()
+        task.launchPath = "/usr/bin/open"
+        task.arguments = ["-b", "com.apple.finder", "airdrop://"]
+        try? task.run()
     }
 }
 
-// Compact file chip for tray - horizontal style
+// MARK: - Tray File Chip
+/// A compact file chip displaying file icon and name with hover actions
+
 struct TrayFileChip: View {
+
+    // MARK: - Properties
     let fileURL: URL
     let onTap: () -> Void
     let onDelete: () -> Void
@@ -160,65 +202,80 @@ struct TrayFileChip: View {
     @State private var fileIcon: NSImage?
     @State private var isHovering = false
 
+    // MARK: - Body
     var body: some View {
         Button(action: onTap) {
             ZStack(alignment: .topTrailing) {
-                HStack(spacing: 6) {
-                    if let icon = fileIcon {
-                        Image(nsImage: icon)
-                            .resizable()
-                            .aspectRatio(contentMode: .fit)
-                            .frame(width: 24, height: 24)
-                    } else {
-                        Image(systemName: "doc.fill")
-                            .font(.system(size: 16))
-                            .foregroundColor(.white.opacity(0.6))
-                    }
+                chipContent
 
-                    Text(fileURL.deletingPathExtension().lastPathComponent)
-                        .font(.system(size: 10, weight: .medium, design: .rounded))
-                        .foregroundColor(.white.opacity(0.7))
-                        .lineLimit(1)
-                        .frame(maxWidth: 60)
-                }
-                .padding(.horizontal, 8)
-                .padding(.vertical, 6)
-                .background(
-                    RoundedRectangle(cornerRadius: 8, style: .continuous)
-                        .fill(Color.white.opacity(isHovering ? 0.12 : 0.06))
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 8, style: .continuous)
-                                .stroke(Color.white.opacity(isHovering ? 0.2 : 0.08), lineWidth: 0.5)
-                        )
-                )
-
-                // Delete button on hover
                 if isHovering {
-                    Button(action: onDelete) {
-                        Image(systemName: "xmark.circle.fill")
-                            .font(.system(size: 12))
-                            .foregroundStyle(.white, .red)
-                    }
-                    .buttonStyle(.plain)
-                    .offset(x: 4, y: -4)
-                    .transition(.scale.combined(with: .opacity))
+                    deleteButton
                 }
             }
-            .scaleEffect(isHovering ? 1.05 : 1.0)
-            .animation(.spring(response: 0.3, dampingFraction: 0.7), value: isHovering)
+            .hoverScale(isHovering, scale: 1.05)
         }
         .buttonStyle(.plain)
         .onHover { hovering in
-            withAnimation(.easeInOut(duration: 0.2)) {
+            withAnimation(AppTheme.Animations.hover) {
                 isHovering = hovering
             }
         }
         .onAppear {
-            fileIcon = NSWorkspace.shared.icon(forFile: fileURL.path)
+            loadFileIcon()
         }
+    }
+
+    // MARK: - Subviews
+
+    private var chipContent: some View {
+        HStack(spacing: 6) {
+            fileIconView
+
+            Text(fileURL.deletingPathExtension().lastPathComponent)
+                .font(AppTheme.Typography.caption())
+                .foregroundColor(AppTheme.Colors.textSecondary)
+                .lineLimit(1)
+                .frame(maxWidth: 60)
+        }
+        .padding(.horizontal, AppConstants.Layout.smallSpacing)
+        .padding(.vertical, 6)
+        .cardStyle(isHovering: isHovering, cornerRadius: AppConstants.Layout.smallCornerRadius)
+    }
+
+    private var fileIconView: some View {
+        Group {
+            if let icon = fileIcon {
+                Image(nsImage: icon)
+                    .resizable()
+                    .aspectRatio(contentMode: .fit)
+                    .frame(width: 24, height: 24)
+            } else {
+                Image(systemName: "doc.fill")
+                    .font(.system(size: 16))
+                    .foregroundColor(AppTheme.Colors.textTertiary)
+            }
+        }
+    }
+
+    private var deleteButton: some View {
+        Button(action: onDelete) {
+            Image(systemName: "xmark.circle.fill")
+                .font(.system(size: 12))
+                .foregroundStyle(.white, .red)
+        }
+        .buttonStyle(.plain)
+        .offset(x: 4, y: -4)
+        .transition(.scale.combined(with: .opacity))
+    }
+
+    // MARK: - Helpers
+
+    private func loadFileIcon() {
+        fileIcon = NSWorkspace.shared.icon(forFile: fileURL.path)
     }
 }
 
+// MARK: - Preview
 #Preview {
     TrayView()
         .frame(width: 500, height: 100)

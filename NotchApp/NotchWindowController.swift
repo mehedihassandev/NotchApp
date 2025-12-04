@@ -2,36 +2,56 @@ import SwiftUI
 import AppKit
 import Combine
 
-// Shared state to manage notch expansion
-class NotchState: ObservableObject {
-    static let shared = NotchState()
-    @Published var isExpanded: Bool = false
-}
+// MARK: - Notch Window
+/// Custom NSWindow subclass for the notch interface
+/// Handles positioning, tracking areas, and mouse event management
 
-class NotchWindow: NSWindow {
+final class NotchWindow: NSWindow {
+
+    // MARK: - Private Properties
     private var trackingArea: NSTrackingArea?
     private var cancellables = Set<AnyCancellable>()
 
-    override init(contentRect: NSRect, styleMask style: NSWindow.StyleMask, backing backingStoreType: NSWindow.BackingStoreType, defer flag: Bool) {
-        super.init(contentRect: contentRect, styleMask: [.borderless, .fullSizeContentView], backing: backingStoreType, defer: flag)
+    // MARK: - Initialization
+    override init(
+        contentRect: NSRect,
+        styleMask style: NSWindow.StyleMask,
+        backing backingStoreType: NSWindow.BackingStoreType,
+        defer flag: Bool
+    ) {
+        super.init(
+            contentRect: contentRect,
+            styleMask: [.borderless, .fullSizeContentView],
+            backing: backingStoreType,
+            defer: flag
+        )
 
-        // Make window floating and transparent with modern styling
-        self.isOpaque = false
-        self.backgroundColor = .clear
-        self.hasShadow = true
-        self.level = .statusBar
-        self.collectionBehavior = [.canJoinAllSpaces, .stationary, .ignoresCycle, .fullScreenAuxiliary]
-
-        // Allow mouse events for smooth interaction
-        self.isMovableByWindowBackground = false
-        self.acceptsMouseMovedEvents = true
-        // Initially ignore mouse events when collapsed
-        self.ignoresMouseEvents = true
-
-        // Position at top center aligned with notch
+        configureWindow()
         positionWindow()
+        setupObservers()
+    }
 
-        // Setup screen change notifications
+    deinit {
+        NotificationCenter.default.removeObserver(self)
+    }
+
+    // MARK: - Window Configuration
+
+    private func configureWindow() {
+        isOpaque = false
+        backgroundColor = .clear
+        hasShadow = true
+        level = .statusBar
+        collectionBehavior = [.canJoinAllSpaces, .stationary, .ignoresCycle, .fullScreenAuxiliary]
+        isMovableByWindowBackground = false
+        acceptsMouseMovedEvents = true
+        ignoresMouseEvents = true  // Initially ignore mouse events when collapsed
+    }
+
+    // MARK: - Observers
+
+    private func setupObservers() {
+        // Screen change notifications
         NotificationCenter.default.addObserver(
             self,
             selector: #selector(screenParametersChanged),
@@ -39,7 +59,7 @@ class NotchWindow: NSWindow {
             object: nil
         )
 
-        // Observe notch state changes
+        // Notch state changes
         NotchState.shared.$isExpanded
             .receive(on: DispatchQueue.main)
             .sink { [weak self] isExpanded in
@@ -48,37 +68,33 @@ class NotchWindow: NSWindow {
             .store(in: &cancellables)
     }
 
-    deinit {
-        NotificationCenter.default.removeObserver(self)
-    }
-
     @objc private func screenParametersChanged() {
         positionWindow()
     }
+
+    // MARK: - Window Positioning
 
     private func positionWindow() {
         guard let screen = NSScreen.main else { return }
 
         let screenFrame = screen.frame
-        let notchHeight: CGFloat = getNotchHeight(for: screen)
+        let windowWidth = AppConstants.Window.width
+        let windowHeight = AppConstants.Window.height
 
-        // Window dimensions - wider for horizontal Nook layout
-        let windowWidth: CGFloat = 580
-        let windowHeight: CGFloat = 400 // Height for expanded content
-
-        // Center horizontally, position at EXACT top of screen for hover detection
+        // Center horizontally, position at top of screen
         let xPos = (screenFrame.width - windowWidth) / 2 + screenFrame.origin.x
         let yPos = screenFrame.maxY - windowHeight
 
-        self.setFrame(
+        setFrame(
             NSRect(x: xPos, y: yPos, width: windowWidth, height: windowHeight),
             display: true,
             animate: false
         )
 
-        // Setup tracking area for top-edge hover detection
         setupTrackingArea()
     }
+
+    // MARK: - Tracking Area
 
     private func setupTrackingArea() {
         // Remove existing tracking area
@@ -86,42 +102,36 @@ class NotchWindow: NSWindow {
             contentView?.removeTrackingArea(existingArea)
         }
 
-        // Create tracking area only for the top 50px of the window (notch area)
-        if let contentView = contentView {
-            let trackingRect = NSRect(
-                x: 0,
-                y: contentView.bounds.height - 50, // Only top 50px
-                width: contentView.bounds.width,
-                height: 50
-            )
+        // Create tracking area for top portion of window (notch area)
+        guard let contentView = contentView else { return }
 
-            trackingArea = NSTrackingArea(
-                rect: trackingRect,
-                options: [.mouseEnteredAndExited, .activeAlways, .inVisibleRect],
-                owner: self,
-                userInfo: nil
-            )
-            contentView.addTrackingArea(trackingArea!)
-        }
+        let trackingRect = NSRect(
+            x: 0,
+            y: contentView.bounds.height - AppConstants.Window.trackingAreaHeight,
+            width: contentView.bounds.width,
+            height: AppConstants.Window.trackingAreaHeight
+        )
+
+        trackingArea = NSTrackingArea(
+            rect: trackingRect,
+            options: [.mouseEnteredAndExited, .activeAlways, .inVisibleRect],
+            owner: self,
+            userInfo: nil
+        )
+
+        contentView.addTrackingArea(trackingArea!)
     }
 
-    private func getNotchHeight(for screen: NSScreen) -> CGFloat {
-        // Check for notch on MacBook Pro models (2021+)
-        if #available(macOS 12.0, *) {
-            // Calculate notch area
-            let topSafeArea = screen.safeAreaInsets.top
-            return topSafeArea > 0 ? topSafeArea : 0
-        }
-        return 0
-    }
+    // MARK: - Mouse Event Handling
 
     private func updateMouseEventHandling(isExpanded: Bool) {
         // When collapsed, ignore mouse events to allow clicking through
         // When expanded, capture mouse events for interaction
-        self.ignoresMouseEvents = !isExpanded
+        ignoresMouseEvents = !isExpanded
     }
 
-    // Allow window to receive mouse events even when not key
+    // MARK: - Window Properties Override
+
     override var canBecomeKey: Bool {
         return true
     }
@@ -131,10 +141,21 @@ class NotchWindow: NSWindow {
     }
 }
 
-class NotchWindowController: NSWindowController {
+// MARK: - Notch Window Controller
+/// Controller for managing the notch window lifecycle
+
+final class NotchWindowController: NSWindowController {
+
+    // MARK: - Initialization
+
     convenience init() {
         let window = NotchWindow(
-            contentRect: NSRect(x: 0, y: 0, width: 580, height: 400),
+            contentRect: NSRect(
+                x: 0,
+                y: 0,
+                width: AppConstants.Window.width,
+                height: AppConstants.Window.height
+            ),
             styleMask: [.borderless, .fullSizeContentView],
             backing: .buffered,
             defer: false
@@ -142,37 +163,32 @@ class NotchWindowController: NSWindowController {
 
         self.init(window: window)
 
-        // Set up the content view with smooth rendering
+        setupContentView()
+        configureWindowBehavior()
+    }
+
+    // MARK: - Setup
+
+    private func setupContentView() {
+        guard let window = window else { return }
+
         let contentView = NSHostingView(rootView: NotchBarView())
         contentView.layer?.backgroundColor = .clear
         window.contentView = contentView
-
-        // Enable smooth animations
-        window.animationBehavior = .utilityWindow
     }
+
+    private func configureWindowBehavior() {
+        window?.animationBehavior = .utilityWindow
+    }
+
+    // MARK: - Lifecycle
 
     override func windowDidLoad() {
         super.windowDidLoad()
-
-        // Show window smoothly
-        window?.alphaValue = 0
-        window?.makeKeyAndOrderFront(nil)
-
-        NSAnimationContext.runAnimationGroup { context in
-            context.duration = 0.4
-            context.timingFunction = CAMediaTimingFunction(name: .easeOut)
-            window?.animator().alphaValue = 1.0
-        }
+        showWindowAnimated()
     }
-}
 
-// Extension for smooth window animations
-extension NSWindow {
-    func smoothResize(to newFrame: NSRect, duration: TimeInterval = 0.3) {
-        NSAnimationContext.runAnimationGroup { context in
-            context.duration = duration
-            context.timingFunction = CAMediaTimingFunction(name: .easeInEaseOut)
-            self.animator().setFrame(newFrame, display: true)
-        }
+    private func showWindowAnimated() {
+        window?.fadeIn(duration: AppConstants.Animation.glowDuration)
     }
 }

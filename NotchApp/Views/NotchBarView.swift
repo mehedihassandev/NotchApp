@@ -1,8 +1,16 @@
 import SwiftUI
 
+// MARK: - Notch Bar View
+/// The main notch interface that displays collapsed and expanded states
+/// Handles hover interactions and animations
+
 struct NotchBarView: View {
+
+    // MARK: - State Objects
     @StateObject private var mediaManager = MediaPlayerManager()
     @StateObject private var notchState = NotchState.shared
+
+    // MARK: - State Properties
     @State private var isHovering = false
     @State private var showContent = false
     @State private var glowIntensity: CGFloat = 0
@@ -10,27 +18,23 @@ struct NotchBarView: View {
     @State private var closeTimer: Timer?
     @State private var selectedTab: NotchTab = .nook
 
-    // Smooth animations
-    private let glowAnimation = Animation.easeInOut(duration: 0.4)
-    private let scaleAnimation = Animation.spring(response: 0.5, dampingFraction: 0.8)
-    private let contentAnimation = Animation.spring(response: 0.4, dampingFraction: 0.85)
+    @Namespace private var tabNamespace
 
-    enum NotchTab: String, CaseIterable {
-        case nook = "Nook"
-        case tray = "Tray"
+    // MARK: - Animation Constants
+    private let glowAnimation = Animation.easeInOut(duration: AppConstants.Animation.glowDuration)
+    private let scaleAnimation = Animation.spring(
+        response: AppConstants.Animation.scaleDuration,
+        dampingFraction: 0.8
+    )
+    private let contentAnimation = Animation.spring(
+        response: AppConstants.Animation.springResponse,
+        dampingFraction: AppConstants.Animation.springDamping
+    )
 
-        var icon: String {
-            switch self {
-            case .nook: return "arrow.up.forward"
-            case .tray: return "archivebox"
-            }
-        }
-    }
-
+    // MARK: - Body
     var body: some View {
         GeometryReader { geometry in
             ZStack(alignment: .top) {
-                // Main notch container
                 notchContainer
                     .onHover { hovering in
                         handleHover(hovering)
@@ -39,56 +43,78 @@ struct NotchBarView: View {
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
         }
     }
+}
+
+// MARK: - Hover Handling
+extension NotchBarView {
 
     private func handleHover(_ hovering: Bool) {
         closeTimer?.invalidate()
         closeTimer = nil
 
         if hovering {
-            // Phase 1: Show glow effect
-            withAnimation(glowAnimation) {
-                isHovering = true
-                glowIntensity = 1
-            }
-
-            // Phase 2: Scale to 100% after 150ms
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
-                withAnimation(scaleAnimation) {
-                    scaleProgress = 1.0
-                }
-            }
-
-            // Phase 3: Show content after 350ms
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) {
-                withAnimation(contentAnimation) {
-                    showContent = true
-                    notchState.isExpanded = true
-                }
-            }
+            expandNotch()
         } else {
-            // Delay closing
-            closeTimer = Timer.scheduledTimer(withTimeInterval: 0.8, repeats: false) { _ in
-                // Reverse animation
-                withAnimation(contentAnimation) {
-                    showContent = false
-                }
+            scheduleCollapse()
+        }
+    }
 
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
-                    withAnimation(scaleAnimation) {
-                        scaleProgress = 0.5
-                    }
-                }
+    private func expandNotch() {
+        // Phase 1: Show glow effect
+        withAnimation(glowAnimation) {
+            isHovering = true
+            glowIntensity = 1
+        }
 
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) {
-                    withAnimation(glowAnimation) {
-                        isHovering = false
-                        glowIntensity = 0
-                        notchState.isExpanded = false
-                    }
-                }
+        // Phase 2: Scale to 100% after delay
+        DispatchQueue.main.asyncAfter(deadline: .now() + AppConstants.Animation.scaleDelay) {
+            withAnimation(scaleAnimation) {
+                scaleProgress = 1.0
+            }
+        }
+
+        // Phase 3: Show content after delay
+        DispatchQueue.main.asyncAfter(deadline: .now() + AppConstants.Animation.contentDelay) {
+            withAnimation(contentAnimation) {
+                showContent = true
+                notchState.isExpanded = true
             }
         }
     }
+
+    private func scheduleCollapse() {
+        closeTimer = Timer.scheduledTimer(
+            withTimeInterval: AppConstants.Animation.closeDelay,
+            repeats: false
+        ) { _ in
+            collapseNotch()
+        }
+    }
+
+    private func collapseNotch() {
+        // Reverse animation sequence
+        withAnimation(contentAnimation) {
+            showContent = false
+        }
+
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
+            withAnimation(scaleAnimation) {
+                scaleProgress = 0.5
+            }
+        }
+
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) {
+            withAnimation(glowAnimation) {
+                isHovering = false
+                glowIntensity = 0
+                notchState.isExpanded = false
+            }
+        }
+    }
+}
+
+// MARK: - Notch Container
+extension NotchBarView {
 
     private var notchContainer: some View {
         VStack(spacing: 0) {
@@ -101,193 +127,113 @@ struct NotchBarView: View {
             }
         }
         .scaleEffect(x: scaleProgress, y: 1, anchor: .center)
-        .background(
-            ZStack {
-                // Drop shadow gradient effect at bottom
-                MacNotchShape(topCornerRadius: 0, bottomCornerRadius: showContent ? 16 : 12)
-                    .fill(
-                        LinearGradient(
-                            colors: [
-                                Color.purple.opacity(0.6 * glowIntensity),
-                                Color.blue.opacity(0.7 * glowIntensity),
-                                Color.indigo.opacity(0.5 * glowIntensity)
-                            ],
-                            startPoint: .leading,
-                            endPoint: .trailing
-                        )
-                    )
-                    .blur(radius: 15 * glowIntensity)
-                    .offset(y: 8 * glowIntensity)
-                    .scaleEffect(x: 0.95, y: 1.1)
-
-                // Main black notch shape
-                MacNotchShape(topCornerRadius: 0, bottomCornerRadius: showContent ? 16 : 12)
-                    .fill(Color.black)
-            }
-        )
-        .overlay(
-            // Gradient border - bottom and sides only
-            MacNotchShape(topCornerRadius: 0, bottomCornerRadius: showContent ? 16 : 12)
-                .stroke(
-                    LinearGradient(
-                        colors: [
-                            Color.clear,
-                            Color.purple.opacity(0.4 * glowIntensity),
-                            Color.blue.opacity(0.5 * glowIntensity),
-                            Color.purple.opacity(0.4 * glowIntensity),
-                            Color.clear
-                        ],
-                        startPoint: .top,
-                        endPoint: .bottom
-                    ),
-                    lineWidth: 1.5
-                )
-        )
-        .clipShape(MacNotchShape(topCornerRadius: 0, bottomCornerRadius: showContent ? 16 : 12))
-        // Half visible when not hovering, full when hovering
-        .offset(y: isHovering ? 0 : -22)
+        .background(notchBackground)
+        .overlay(notchBorder)
+        .clipShape(NotchShape(topCornerRadius: 0, bottomCornerRadius: showContent ? 16 : 12))
+        .offset(y: isHovering ? 0 : AppConstants.Window.collapsedOffset)
         .opacity(isHovering ? 1.0 : 0.5)
     }
+
+    private var notchBackground: some View {
+        ZStack {
+            // Glow effect
+            NotchShape(topCornerRadius: 0, bottomCornerRadius: showContent ? 16 : 12)
+                .fill(
+                    LinearGradient(
+                        colors: [
+                            Color.purple.opacity(0.6 * glowIntensity),
+                            Color.blue.opacity(0.7 * glowIntensity),
+                            Color.indigo.opacity(0.5 * glowIntensity)
+                        ],
+                        startPoint: .leading,
+                        endPoint: .trailing
+                    )
+                )
+                .blur(radius: 15 * glowIntensity)
+                .offset(y: 8 * glowIntensity)
+                .scaleEffect(x: 0.95, y: 1.1)
+
+            // Main black background
+            NotchShape(topCornerRadius: 0, bottomCornerRadius: showContent ? 16 : 12)
+                .fill(AppTheme.Colors.background)
+        }
+    }
+
+    private var notchBorder: some View {
+        NotchShape(topCornerRadius: 0, bottomCornerRadius: showContent ? 16 : 12)
+            .stroke(
+                LinearGradient(
+                    colors: [
+                        Color.clear,
+                        Color.purple.opacity(0.4 * glowIntensity),
+                        Color.blue.opacity(0.5 * glowIntensity),
+                        Color.purple.opacity(0.4 * glowIntensity),
+                        Color.clear
+                    ],
+                    startPoint: .top,
+                    endPoint: .bottom
+                ),
+                lineWidth: 1.5
+            )
+    }
+}
+
+// MARK: - Collapsed State
+extension NotchBarView {
 
     private var collapsedNotch: some View {
         HStack(spacing: 12) {
             // Only show content when media is playing
-            if mediaManager.currentMedia.title != "No Media Playing" {
-                // Album artwork
-                Group {
-                    if let artwork = mediaManager.currentMedia.artwork {
-                        Image(nsImage: artwork)
-                            .resizable()
-                            .aspectRatio(contentMode: .fill)
-                            .frame(width: 32, height: 32)
-                            .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
-                            .overlay(
-                                RoundedRectangle(cornerRadius: 8, style: .continuous)
-                                    .stroke(Color.white.opacity(0.1), lineWidth: 0.5)
-                            )
-                    } else {
-                        RoundedRectangle(cornerRadius: 8, style: .continuous)
-                            .fill(
-                                LinearGradient(
-                                    colors: [Color.gray.opacity(0.4), Color.gray.opacity(0.2)],
-                                    startPoint: .topLeading,
-                                    endPoint: .bottomTrailing
-                                )
-                            )
-                            .frame(width: 32, height: 32)
-                            .overlay(
-                                Image(systemName: "music.note")
-                                    .font(.system(size: 14, weight: .medium))
-                                    .foregroundColor(.white.opacity(0.5))
-                            )
-                    }
-                }
-
-                // Song info
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(mediaManager.currentMedia.title)
-                        .font(.system(size: 12, weight: .semibold, design: .rounded))
-                        .foregroundColor(.white)
-                        .lineLimit(1)
-
-                    Text(mediaManager.currentMedia.artist)
-                        .font(.system(size: 10, weight: .medium, design: .rounded))
-                        .foregroundColor(.white.opacity(0.5))
-                        .lineLimit(1)
-                }
-                .frame(maxWidth: 150, alignment: .leading)
-
-                // Music bars when playing
-                if mediaManager.currentMedia.isPlaying {
-                    HStack(spacing: 2.5) {
-                        ForEach(0..<3, id: \.self) { index in
-                            RoundedRectangle(cornerRadius: 2, style: .continuous)
-                                .fill(
-                                    LinearGradient(
-                                        colors: [Color.cyan, Color.purple],
-                                        startPoint: .bottom,
-                                        endPoint: .top
-                                    )
-                                )
-                                .frame(width: 3, height: animatedBarHeight(index: index))
-                        }
-                    }
-                    .padding(.leading, 8)
-                }
+            if mediaManager.currentMedia.hasContent {
+                collapsedMediaContent
             }
         }
-        .padding(.horizontal, mediaManager.currentMedia.title != "No Media Playing" ? 18 : 0)
+        .padding(.horizontal, mediaManager.currentMedia.hasContent ? 18 : 0)
         .padding(.vertical, 10)
         .frame(minWidth: 180, minHeight: 36)
     }
 
+    private var collapsedMediaContent: some View {
+        Group {
+            // Album artwork (small)
+            AlbumArtworkView(
+                artwork: mediaManager.currentMedia.artwork,
+                size: AppConstants.Layout.smallIconSize,
+                cornerRadius: AppConstants.Layout.smallCornerRadius
+            )
+
+            // Song info
+            VStack(alignment: .leading, spacing: 2) {
+                Text(mediaManager.currentMedia.title)
+                    .font(AppTheme.Typography.body())
+                    .foregroundColor(AppTheme.Colors.textPrimary)
+                    .lineLimit(1)
+
+                Text(mediaManager.currentMedia.artist)
+                    .font(AppTheme.Typography.caption())
+                    .foregroundColor(AppTheme.Colors.textTertiary)
+                    .lineLimit(1)
+            }
+            .frame(maxWidth: 150, alignment: .leading)
+
+            // Music bars when playing
+            if mediaManager.currentMedia.isPlaying {
+                MusicBarsView(isPlaying: mediaManager.currentMedia.isPlaying)
+                    .padding(.leading, 8)
+            }
+        }
+    }
+}
+
+// MARK: - Expanded State
+extension NotchBarView {
+
     private var expandedContent: some View {
         VStack(spacing: 0) {
-            // Header
-            HStack {
-                // Tab Switcher
-                HStack(spacing: 0) {
-                    ForEach(NotchTab.allCases, id: \.self) { tab in
-                        HStack(spacing: 6) {
-                            Image(systemName: tab.icon)
-                                .font(.system(size: 11, weight: .semibold))
-                            Text(tab.rawValue)
-                                .font(.system(size: 12, weight: .semibold, design: .rounded))
-                        }
-                        .foregroundColor(selectedTab == tab ? .white : .white.opacity(0.4))
-                        .padding(.horizontal, 14)
-                        .padding(.vertical, 8)
-                        .background(
-                            ZStack {
-                                if selectedTab == tab {
-                                    RoundedRectangle(cornerRadius: 10, style: .continuous)
-                                        .fill(Color.white.opacity(0.12))
-                                        .matchedGeometryEffect(id: "tab", in: tabNamespace)
-                                }
-                            }
-                        )
-                        .contentShape(Rectangle())
-                        .onTapGesture {
-                            withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
-                                selectedTab = tab
-                            }
-                        }
-                    }
-                }
-                .padding(4)
-                .background(
-                    RoundedRectangle(cornerRadius: 14, style: .continuous)
-                        .fill(Color.white.opacity(0.06))
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 14, style: .continuous)
-                                .stroke(Color.white.opacity(0.08), lineWidth: 0.5)
-                        )
-                )
+            // Header with tab switcher
+            expandedHeader
 
-                Spacer()
-
-                // Settings
-                Button(action: {}) {
-                    Image(systemName: "gearshape.fill")
-                        .font(.system(size: 14, weight: .medium))
-                        .foregroundColor(.white.opacity(0.5))
-                        .padding(10)
-                        .background(
-                            Circle()
-                                .fill(Color.white.opacity(0.06))
-                                .overlay(
-                                    Circle()
-                                        .stroke(Color.white.opacity(0.08), lineWidth: 0.5)
-                                )
-                        )
-                }
-                .buttonStyle(.plain)
-            }
-            .padding(.horizontal, 20)
-            .padding(.top, 16)
-            .padding(.bottom, 14)
-
-            // Content
+            // Tab content
             Group {
                 switch selectedTab {
                 case .nook:
@@ -301,95 +247,63 @@ struct NotchBarView: View {
         .padding(.horizontal, 4)
     }
 
-    @Namespace private var tabNamespace
+    private var expandedHeader: some View {
+        HStack {
+            // Tab Switcher
+            tabSwitcher
 
-    private func animatedBarHeight(index: Int) -> CGFloat {
-        let base: CGFloat = 6
-        let maxHeight: CGFloat = 16
-        if !mediaManager.currentMedia.isPlaying {
-            return base
+            Spacer()
+
+            // Settings button
+            IconButton(icon: "gearshape.fill") {
+                // Settings action
+            }
         }
-        let offset = sin(Date().timeIntervalSinceReferenceDate * 3 + Double(index) * 0.8) * 0.5 + 0.5
-        return base + (maxHeight - base) * offset
+        .padding(.horizontal, 20)
+        .padding(.top, 16)
+        .padding(.bottom, 14)
     }
-}
 
-// Custom MacBook-style notch shape with sharp top corners and rounded bottom corners
-struct MacNotchShape: Shape {
-    var topCornerRadius: CGFloat = 0
-    var bottomCornerRadius: CGFloat = 16
+    private var tabSwitcher: some View {
+        HStack(spacing: 0) {
+            ForEach(NotchTab.allCases, id: \.self) { tab in
+                tabButton(for: tab)
+            }
+        }
+        .padding(4)
+        .glassStyle()
+    }
 
-    func path(in rect: CGRect) -> Path {
-        var path = Path()
+    private func tabButton(for tab: NotchTab) -> some View {
+        HStack(spacing: 6) {
+            Image(systemName: tab.icon)
+                .font(.system(size: 11, weight: .semibold))
 
-        let width = rect.width
-        let height = rect.height
-        let bottomRadius = bottomCornerRadius
-
-        // Start from top-left (sharp corner)
-        path.move(to: CGPoint(x: 0, y: 0))
-
-        // Top edge (straight line, sharp corners)
-        path.addLine(to: CGPoint(x: width, y: 0))
-
-        // Right edge down to bottom corner
-        path.addLine(to: CGPoint(x: width, y: height - bottomRadius))
-
-        // Bottom-right corner (rounded)
-        path.addArc(
-            center: CGPoint(x: width - bottomRadius, y: height - bottomRadius),
-            radius: bottomRadius,
-            startAngle: .degrees(0),
-            endAngle: .degrees(90),
-            clockwise: false
+            Text(tab.rawValue)
+                .font(AppTheme.Typography.body())
+        }
+        .foregroundColor(selectedTab == tab ? .white : .white.opacity(0.4))
+        .padding(.horizontal, 14)
+        .padding(.vertical, 8)
+        .background(
+            ZStack {
+                if selectedTab == tab {
+                    RoundedRectangle(cornerRadius: 10, style: .continuous)
+                        .fill(Color.white.opacity(0.12))
+                        .matchedGeometryEffect(id: "tab", in: tabNamespace)
+                }
+            }
         )
-
-        // Bottom edge
-        path.addLine(to: CGPoint(x: bottomRadius, y: height))
-
-        // Bottom-left corner (rounded)
-        path.addArc(
-            center: CGPoint(x: bottomRadius, y: height - bottomRadius),
-            radius: bottomRadius,
-            startAngle: .degrees(90),
-            endAngle: .degrees(180),
-            clockwise: false
-        )
-
-        // Left edge up to top (sharp corner)
-        path.addLine(to: CGPoint(x: 0, y: 0))
-
-        path.closeSubpath()
-
-        return path
+        .contentShape(Rectangle())
+        .onTapGesture {
+            withAnimation(AppTheme.Animations.spring) {
+                selectedTab = tab
+            }
+        }
     }
 }
 
-// Legacy shape for backwards compatibility
-struct NotchShape: Shape {
-    func path(in rect: CGRect) -> Path {
-        return MacNotchShape(topCornerRadius: 6, bottomCornerRadius: 16).path(in: rect)
-    }
-}
-
-struct VisualEffectView: NSViewRepresentable {
-    var material: NSVisualEffectView.Material
-    var blendingMode: NSVisualEffectView.BlendingMode
-
-    func makeNSView(context: Context) -> NSVisualEffectView {
-        let view = NSVisualEffectView()
-        view.material = material
-        view.blendingMode = blendingMode
-        view.state = .active
-        return view
-    }
-
-    func updateNSView(_ nsView: NSVisualEffectView, context: Context) {
-        nsView.material = material
-        nsView.blendingMode = blendingMode
-    }
-}
-
+// MARK: - Preview
 #Preview {
     NotchBarView()
         .frame(width: 400, height: 300)
