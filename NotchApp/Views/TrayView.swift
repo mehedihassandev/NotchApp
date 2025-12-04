@@ -4,83 +4,65 @@ import UniformTypeIdentifiers
 struct TrayView: View {
     @State private var droppedFiles: [URL] = []
     @State private var isDropTargeted = false
+    @State private var isAirDropHovering = false
 
     var body: some View {
-        ScrollView(.vertical, showsIndicators: false) {
-            VStack(spacing: 20) {
-                // Drop Zone
-                if droppedFiles.isEmpty {
-                    emptyDropZone
-                } else {
-                    filesGrid
-                }
+        HStack(spacing: 14) {
+            // Files Tray - Drop Zone
+            filesTraySection
 
-                // Quick Actions
-                quickActionsSection
-            }
-            .padding(.horizontal, 8)
-            .padding(.top, 8)
+            // AirDrop Section
+            airDropSection
         }
-        .frame(maxHeight: 500)
+        .padding(.horizontal, 16)
+        .padding(.vertical, 14)
     }
 
-    private var emptyDropZone: some View {
-        VStack(spacing: 16) {
-            ZStack {
-                Circle()
-                    .fill(
-                        LinearGradient(
-                            colors: [Color.blue.opacity(0.3), Color.purple.opacity(0.3)],
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
-                        )
-                    )
-                    .frame(width: 80, height: 80)
-                    .blur(radius: 20)
+    private var filesTraySection: some View {
+        HStack(spacing: 16) {
+            if droppedFiles.isEmpty {
+                // Empty state - icon and label
+                Image(systemName: "tray.fill")
+                    .font(.system(size: 26, weight: .regular))
+                    .foregroundColor(.white.opacity(0.4))
 
-                Image(systemName: "tray.and.arrow.down.fill")
-                    .font(.system(size: 40, weight: .medium))
-                    .foregroundStyle(
-                        LinearGradient(
-                            colors: [.white.opacity(0.8), .white.opacity(0.5)],
-                            startPoint: .top,
-                            endPoint: .bottom
-                        )
-                    )
+                Text("Files Tray")
+                    .font(.system(size: 13, weight: .medium, design: .rounded))
+                    .foregroundColor(.white.opacity(0.5))
+            } else {
+                // Show dropped files horizontally
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 8) {
+                        ForEach(droppedFiles, id: \.self) { fileURL in
+                            TrayFileChip(fileURL: fileURL, onTap: {
+                                NSWorkspace.shared.open(fileURL)
+                            }, onDelete: {
+                                withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
+                                    droppedFiles.removeAll { $0 == fileURL }
+                                }
+                            })
+                        }
+                    }
+                }
             }
 
-            Text("Drop files here")
-                .font(.system(size: 16, weight: .semibold, design: .rounded))
-                .foregroundColor(.white.opacity(0.8))
-
-            Text("Quick access to your files from anywhere")
-                .font(.system(size: 12, weight: .medium, design: .rounded))
-                .foregroundColor(.white.opacity(0.5))
-                .multilineTextAlignment(.center)
+            Spacer()
         }
+        .padding(.horizontal, 20)
+        .padding(.vertical, 20)
         .frame(maxWidth: .infinity)
-        .frame(height: 200)
         .background(
-            RoundedRectangle(cornerRadius: 20, style: .continuous)
-                .fill(Color.black.opacity(0.25))
+            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                .fill(Color.black.opacity(0.15))
                 .overlay(
-                    RoundedRectangle(cornerRadius: 20, style: .continuous)
+                    RoundedRectangle(cornerRadius: 16, style: .continuous)
                         .strokeBorder(
-                            style: StrokeStyle(lineWidth: 2, dash: isDropTargeted ? [] : [8, 8])
+                            style: StrokeStyle(lineWidth: 2, dash: [7, 5])
                         )
-                        .foregroundStyle(
-                            LinearGradient(
-                                colors: [
-                                    Color.white.opacity(isDropTargeted ? 0.4 : 0.2),
-                                    Color.white.opacity(isDropTargeted ? 0.2 : 0.1)
-                                ],
-                                startPoint: .topLeading,
-                                endPoint: .bottomTrailing
-                            )
-                        )
+                        .foregroundColor(.white.opacity(isDropTargeted ? 0.4 : 0.2))
                 )
         )
-        .scaleEffect(isDropTargeted ? 1.02 : 1.0)
+        .scaleEffect(isDropTargeted ? 1.01 : 1.0)
         .animation(.spring(response: 0.3, dampingFraction: 0.7), value: isDropTargeted)
         .onDrop(of: [.fileURL], isTargeted: $isDropTargeted) { providers in
             handleDrop(providers: providers)
@@ -88,90 +70,68 @@ struct TrayView: View {
         }
     }
 
-    private var filesGrid: some View {
-        LazyVGrid(columns: [
-            GridItem(.flexible(), spacing: 12),
-            GridItem(.flexible(), spacing: 12),
-            GridItem(.flexible(), spacing: 12)
-        ], spacing: 12) {
-            ForEach(droppedFiles, id: \.self) { fileURL in
-                TrayFileItemView(fileURL: fileURL, onTap: {
-                    // Open file
-                    NSWorkspace.shared.open(fileURL)
-                }, onDelete: {
-                    withAnimation {
-                        droppedFiles.removeAll { $0 == fileURL }
-                    }
-                })
-            }
-
-            // Add more button
-            addMoreButton
-        }
-        .padding(.vertical, 8)
-    }
-
-    private var addMoreButton: some View {
+    private var airDropSection: some View {
         Button(action: {
-            // Could add file picker here
+            // Open AirDrop via Finder
+            let task = Process()
+            task.launchPath = "/usr/bin/open"
+            task.arguments = ["-b", "com.apple.finder", "airdrop://"]
+            try? task.run()
         }) {
-            VStack(spacing: 8) {
-                Image(systemName: "plus.circle.fill")
-                    .font(.system(size: 32))
-                    .foregroundStyle(
-                        LinearGradient(
-                            colors: [.white.opacity(0.6), .white.opacity(0.4)],
-                            startPoint: .top,
-                            endPoint: .bottom
-                        )
-                    )
+            HStack(spacing: 14) {
+                // AirDrop Icon - Concentric rings
+                ZStack {
+                    ForEach(0..<3, id: \.self) { index in
+                        Circle()
+                            .stroke(
+                                Color.blue.opacity(0.8 - Double(index) * 0.2),
+                                lineWidth: 2
+                            )
+                            .frame(
+                                width: CGFloat(12 + index * 9),
+                                height: CGFloat(12 + index * 9)
+                            )
+                    }
 
-                Text("Add More")
-                    .font(.system(size: 10, weight: .medium, design: .rounded))
-                    .foregroundColor(.white.opacity(0.5))
+                    Circle()
+                        .fill(Color.blue)
+                        .frame(width: 5, height: 5)
+                }
+                .frame(width: 36, height: 36)
+
+                Text("AirDrop")
+                    .font(.system(size: 14, weight: .semibold, design: .rounded))
+                    .foregroundColor(.white.opacity(0.9))
+
+                Spacer()
             }
-            .frame(maxWidth: .infinity)
-            .frame(height: 100)
+            .padding(.horizontal, 18)
+            .padding(.vertical, 20)
+            .frame(width: 160)
             .background(
                 RoundedRectangle(cornerRadius: 16, style: .continuous)
-                    .fill(Color.black.opacity(0.25))
+                    .fill(
+                        LinearGradient(
+                            colors: [
+                                Color(red: 0.12, green: 0.18, blue: 0.32).opacity(isAirDropHovering ? 1.0 : 0.8),
+                                Color(red: 0.08, green: 0.12, blue: 0.28).opacity(isAirDropHovering ? 1.0 : 0.8)
+                            ],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
+                    )
                     .overlay(
                         RoundedRectangle(cornerRadius: 16, style: .continuous)
-                            .strokeBorder(
-                                style: StrokeStyle(lineWidth: 1, dash: [4, 4])
-                            )
-                            .foregroundColor(.white.opacity(0.2))
+                            .stroke(Color.blue.opacity(isAirDropHovering ? 0.4 : 0.2), lineWidth: 1)
                     )
             )
+            .scaleEffect(isAirDropHovering ? 1.02 : 1.0)
+            .animation(.spring(response: 0.3, dampingFraction: 0.7), value: isAirDropHovering)
         }
         .buttonStyle(.plain)
-        .onDrop(of: [.fileURL], isTargeted: $isDropTargeted) { providers in
-            handleDrop(providers: providers)
-            return true
+        .onHover { hovering in
+            isAirDropHovering = hovering
         }
-    }
-
-    private var quickActionsSection: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Text("Quick Share")
-                .font(.system(size: 14, weight: .semibold, design: .rounded))
-                .foregroundColor(.white.opacity(0.8))
-
-            HStack(spacing: 12) {
-                QuickActionButton(icon: "airplayaudio", title: "AirDrop", color: .blue) {
-                    // AirDrop functionality
-                }
-
-                QuickActionButton(icon: "square.and.arrow.up", title: "Share", color: .green) {
-                    // Share sheet
-                }
-
-                QuickActionButton(icon: "doc.on.clipboard", title: "Copy", color: .orange) {
-                    // Copy to clipboard
-                }
-            }
-        }
-        .padding(.top, 8)
     }
 
     private func handleDrop(providers: [NSItemProvider]) {
@@ -191,7 +151,8 @@ struct TrayView: View {
     }
 }
 
-struct TrayFileItemView: View {
+// Compact file chip for tray - horizontal style
+struct TrayFileChip: View {
     let fileURL: URL
     let onTap: () -> Void
     let onDelete: () -> Void
@@ -201,130 +162,65 @@ struct TrayFileItemView: View {
 
     var body: some View {
         Button(action: onTap) {
-            VStack(spacing: 8) {
-                ZStack(alignment: .topTrailing) {
-                    // File icon
+            ZStack(alignment: .topTrailing) {
+                HStack(spacing: 6) {
                     if let icon = fileIcon {
                         Image(nsImage: icon)
                             .resizable()
                             .aspectRatio(contentMode: .fit)
-                            .frame(width: 40, height: 40)
+                            .frame(width: 24, height: 24)
                     } else {
                         Image(systemName: "doc.fill")
-                            .font(.system(size: 32))
+                            .font(.system(size: 16))
                             .foregroundColor(.white.opacity(0.6))
                     }
 
-                    // Delete button (shown on hover)
-                    if isHovering {
-                        Button(action: onDelete) {
-                            Image(systemName: "xmark.circle.fill")
-                                .font(.system(size: 16))
-                                .foregroundColor(.red)
-                                .background(
-                                    Circle()
-                                        .fill(Color.white)
-                                        .frame(width: 14, height: 14)
-                                )
-                        }
-                        .buttonStyle(.plain)
-                        .offset(x: 8, y: -8)
-                        .transition(.scale.combined(with: .opacity))
-                    }
+                    Text(fileURL.deletingPathExtension().lastPathComponent)
+                        .font(.system(size: 10, weight: .medium, design: .rounded))
+                        .foregroundColor(.white.opacity(0.7))
+                        .lineLimit(1)
+                        .frame(maxWidth: 60)
                 }
+                .padding(.horizontal, 8)
+                .padding(.vertical, 6)
+                .background(
+                    RoundedRectangle(cornerRadius: 8, style: .continuous)
+                        .fill(Color.white.opacity(isHovering ? 0.12 : 0.06))
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 8, style: .continuous)
+                                .stroke(Color.white.opacity(isHovering ? 0.2 : 0.08), lineWidth: 0.5)
+                        )
+                )
 
-                Text(fileURL.lastPathComponent)
-                    .font(.system(size: 10, weight: .medium, design: .rounded))
-                    .foregroundColor(.white.opacity(0.8))
-                    .lineLimit(2)
-                    .multilineTextAlignment(.center)
+                // Delete button on hover
+                if isHovering {
+                    Button(action: onDelete) {
+                        Image(systemName: "xmark.circle.fill")
+                            .font(.system(size: 12))
+                            .foregroundStyle(.white, .red)
+                    }
+                    .buttonStyle(.plain)
+                    .offset(x: 4, y: -4)
+                    .transition(.scale.combined(with: .opacity))
+                }
             }
-            .frame(maxWidth: .infinity)
-            .frame(height: 100)
-            .background(
-                RoundedRectangle(cornerRadius: 16, style: .continuous)
-                    .fill(Color.black.opacity(0.25))
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 16, style: .continuous)
-                            .stroke(Color.white.opacity(isHovering ? 0.3 : 0.1), lineWidth: 1)
-                    )
-            )
             .scaleEffect(isHovering ? 1.05 : 1.0)
             .animation(.spring(response: 0.3, dampingFraction: 0.7), value: isHovering)
         }
         .buttonStyle(.plain)
         .onHover { hovering in
-            isHovering = hovering
+            withAnimation(.easeInOut(duration: 0.2)) {
+                isHovering = hovering
+            }
         }
         .onAppear {
-            loadFileIcon()
+            fileIcon = NSWorkspace.shared.icon(forFile: fileURL.path)
         }
-    }
-
-    private func loadFileIcon() {
-        fileIcon = NSWorkspace.shared.icon(forFile: fileURL.path)
-    }
-}
-
-struct QuickActionButton: View {
-    let icon: String
-    let title: String
-    let color: Color
-    let action: () -> Void
-
-    @State private var isPressed = false
-
-    var body: some View {
-        Button(action: {
-            withAnimation(.spring(response: 0.3, dampingFraction: 0.6)) {
-                isPressed = true
-            }
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-                withAnimation(.spring(response: 0.3, dampingFraction: 0.6)) {
-                    isPressed = false
-                }
-            }
-            action()
-        }) {
-            VStack(spacing: 6) {
-                ZStack {
-                    Circle()
-                        .fill(
-                            LinearGradient(
-                                colors: [color.opacity(0.3), color.opacity(0.2)],
-                                startPoint: .topLeading,
-                                endPoint: .bottomTrailing
-                            )
-                        )
-                        .frame(width: 48, height: 48)
-
-                    Image(systemName: icon)
-                        .font(.system(size: 20, weight: .semibold))
-                        .foregroundColor(color)
-                }
-
-                Text(title)
-                    .font(.system(size: 11, weight: .medium, design: .rounded))
-                    .foregroundColor(.white.opacity(0.7))
-            }
-            .frame(maxWidth: .infinity)
-            .padding(.vertical, 12)
-            .background(
-                RoundedRectangle(cornerRadius: 16, style: .continuous)
-                    .fill(Color.black.opacity(0.25))
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 16, style: .continuous)
-                            .stroke(Color.white.opacity(0.1), lineWidth: 1)
-                    )
-            )
-            .scaleEffect(isPressed ? 0.95 : 1.0)
-        }
-        .buttonStyle(.plain)
     }
 }
 
 #Preview {
     TrayView()
-        .frame(width: 400, height: 500)
+        .frame(width: 500, height: 100)
         .background(Color.black)
 }

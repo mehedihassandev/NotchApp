@@ -62,9 +62,9 @@ class NotchWindow: NSWindow {
         let screenFrame = screen.frame
         let notchHeight: CGFloat = getNotchHeight(for: screen)
 
-        // Window dimensions - taller to accommodate expanded state
-        let windowWidth: CGFloat = 450
-        let windowHeight: CGFloat = 600 // Increased height for dashboard
+        // Window dimensions - wider for horizontal Nook layout
+        let windowWidth: CGFloat = 580
+        let windowHeight: CGFloat = 400 // Height for expanded content
 
         // Center horizontally, position at EXACT top of screen for hover detection
         let xPos = (screenFrame.width - windowWidth) / 2 + screenFrame.origin.x
@@ -134,7 +134,7 @@ class NotchWindow: NSWindow {
 class NotchWindowController: NSWindowController {
     convenience init() {
         let window = NotchWindow(
-            contentRect: NSRect(x: 0, y: 0, width: 450, height: 350),
+            contentRect: NSRect(x: 0, y: 0, width: 580, height: 400),
             styleMask: [.borderless, .fullSizeContentView],
             backing: .buffered,
             defer: false
