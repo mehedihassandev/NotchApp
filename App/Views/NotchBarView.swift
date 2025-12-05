@@ -16,7 +16,6 @@ struct NotchBarView: View {
     @State private var glowIntensity: CGFloat = 0
     @State private var scaleProgress: CGFloat = 0.5
     @State private var closeTimer: Timer?
-    @State private var selectedTab: NotchTab = .nook
     @State private var isMouseInside = false
 
     // Track pending animation work items for cancellation
@@ -95,7 +94,7 @@ extension NotchBarView {
 
         // Switch to Tray tab
         withAnimation(AppTheme.Animations.spring) {
-            selectedTab = .tray
+            notchState.selectedTab = .tray
         }
 
         // Expand the notch if not already expanded
@@ -380,7 +379,7 @@ extension NotchBarView {
 
             // Tab content
             Group {
-                switch selectedTab {
+                switch notchState.selectedTab {
                 case .nook:
                     DashboardView(mediaManager: mediaManager)
                 case .tray:
@@ -400,9 +399,15 @@ extension NotchBarView {
             Spacer()
 
             // Settings button
-            IconButton(icon: "gearshape.fill") {
-                SettingsWindowOpener.open()
+            SettingsLink {
+                Image(systemName: "gearshape.fill")
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundColor(.white.opacity(0.7))
+                    .frame(width: 28, height: 28)
+                    .background(Color.white.opacity(0.08))
+                    .cornerRadius(6)
             }
+            .buttonStyle(.plain)
         }
         .padding(.horizontal, 20)
         .padding(.top, 16)
@@ -427,12 +432,12 @@ extension NotchBarView {
             Text(tab.rawValue)
                 .font(AppTheme.Typography.body())
         }
-        .foregroundColor(selectedTab == tab ? .white : .white.opacity(0.4))
+        .foregroundColor(notchState.selectedTab == tab ? .white : .white.opacity(0.4))
         .padding(.horizontal, 14)
         .padding(.vertical, 8)
         .background(
             ZStack {
-                if selectedTab == tab {
+                if notchState.selectedTab == tab {
                     RoundedRectangle(cornerRadius: 10, style: .continuous)
                         .fill(Color.white.opacity(0.12))
                         .matchedGeometryEffect(id: "tab", in: tabNamespace)
@@ -442,7 +447,7 @@ extension NotchBarView {
         .contentShape(Rectangle())
         .onTapGesture {
             withAnimation(AppTheme.Animations.spring) {
-                selectedTab = tab
+                notchState.selectedTab = tab
             }
         }
     }

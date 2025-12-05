@@ -41,6 +41,9 @@ class AirDropState: ObservableObject {
         isSharing = true
         shareProgress = 0
 
+        // Send notification
+        NotificationManager.shared.notifyAirDropStarted(fileCount: files.count)
+
         // Animate progress
         withAnimation(.easeInOut(duration: 0.3)) {
             shareProgress = 0.3
@@ -52,6 +55,9 @@ class AirDropState: ObservableObject {
             shareProgress = 1.0
         }
 
+        // Send success notification
+        NotificationManager.shared.notifyAirDropCompleted(fileCount: droppedFiles.count)
+
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
             withAnimation(.easeOut(duration: 0.3)) {
                 self.isSharing = false
@@ -62,6 +68,9 @@ class AirDropState: ObservableObject {
     }
 
     func cancelSharing() {
+        // Send failure notification
+        NotificationManager.shared.notifyAirDropFailed()
+
         withAnimation(.easeOut(duration: 0.2)) {
             isSharing = false
             droppedFiles = []
@@ -88,11 +97,19 @@ class TrayStorageManager: ObservableObject {
         let item = TrayItem(url: url)
         items.append(item)
         saveItems()
+
+        // Send notification
+        let fileName = url.lastPathComponent
+        NotificationManager.shared.notifyItemAddedToTray(fileName: fileName)
     }
 
     func removeItem(_ item: TrayItem) {
+        let fileName = item.url.lastPathComponent
         items.removeAll { $0.id == item.id }
         saveItems()
+
+        // Send notification
+        NotificationManager.shared.notifyItemRemovedFromTray(fileName: fileName)
     }
 
     func removeItem(at url: URL) {
@@ -101,8 +118,14 @@ class TrayStorageManager: ObservableObject {
     }
 
     func clearAll() {
+        let itemCount = items.count
         items.removeAll()
         saveItems()
+
+        // Send notification
+        if itemCount > 0 {
+            NotificationManager.shared.notifyTrayCleared(itemCount: itemCount)
+        }
     }
 
     private func saveItems() {
@@ -150,6 +173,33 @@ struct TrayView: View {
                 .shadow(color: Color.black.opacity(0.18), radius: 18, x: 0, y: 8)
         )
         .frame(minHeight: 180)
+        .onAppear {
+            setupKeyboardShortcutObservers()
+        }
+        .onDisappear {
+            NotificationCenter.default.removeObserver(self)
+        }
+    }
+
+    // MARK: - Keyboard Shortcuts
+
+    private func setupKeyboardShortcutObservers() {
+        NotificationCenter.default.addObserver(
+            forName: .clearTray,
+            object: nil,
+            queue: .main
+        ) { [self] _ in
+            handleClearTrayShortcut()
+        }
+    }
+
+    private func handleClearTrayShortcut() {
+        guard !storage.items.isEmpty else { return }
+
+        // Show confirmation or just clear
+        storage.clearAll()
+        HapticManager.shared.success()
+        logInfo("Tray cleared via keyboard shortcut", category: .general)
     }
 }
 

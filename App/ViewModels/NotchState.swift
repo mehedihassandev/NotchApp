@@ -16,6 +16,7 @@ final class NotchState: ObservableObject {
     @Published var isDraggingFile: Bool = false
     @Published var shouldShowTray: Bool = false
     @Published var isSettingsPresented: Bool = false
+    @Published var selectedTab: NotchTab = .nook
 
     // MARK: - Initialization
     private init() {}

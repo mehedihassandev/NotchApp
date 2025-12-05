@@ -49,6 +49,15 @@ Uses Apple's `MediaRemote.framework` - the same API that powers Control Center, 
 -   📊 **Progress Tracking** - Real-time playback progress display
 -   🎨 **Animated Music Bars** - Cyan-purple gradient animated bars when music is playing
 
+### Keyboard Shortcuts ⌨️ NEW!
+
+-   🎹 **Global Hotkeys** - Control NotchApp from anywhere with customizable shortcuts
+-   ⚡ **10 Pre-configured Shortcuts** - Toggle notch, media controls, tab switching, and more
+-   🎨 **Visual Settings UI** - Beautiful interface to customize all shortcuts
+-   💾 **Persistent Configuration** - Your shortcuts are saved and remembered
+-   🔄 **Quick Actions** - `⌘⇧N` toggle, `⌘⇧P` play/pause, `⌘⇧→` next track, and more
+-   📖 **[Full Documentation](KEYBOARD_SHORTCUTS.md)** - Complete guide with tips and tricks
+
 ### UI/UX Design
 
 -   🎨 **Seamless Notch Integration** - Custom NotchShape blends with MacBook's notch
@@ -82,7 +91,18 @@ cd NotchApp
 open NotchApp.xcodeproj
 ```
 
-### 2. Build & Run
+### 2. Add Keyboard Shortcuts Package
+
+**Required for keyboard shortcuts feature:**
+
+1. In Xcode, click on the project → NotchApp target → **Package Dependencies** tab
+2. Click **"+"** button
+3. Paste: `https://github.com/sindresorhus/KeyboardShortcuts`
+4. Select version **2.0.0+** and click **"Add Package"**
+
+📖 **Detailed guide:** See [INSTALLATION_GUIDE.md](INSTALLATION_GUIDE.md)
+
+### 3. Build & Run
 
 ```bash
 # Using Xcode
@@ -92,7 +112,12 @@ open NotchApp.xcodeproj
 xcodebuild -project NotchApp.xcodeproj -scheme NotchApp -configuration Debug build
 ```
 
-### 3. Play Music
+### 4. Grant Permissions
+
+-   macOS will prompt for **Accessibility** permissions (required for keyboard shortcuts)
+-   System Settings → Privacy & Security → Accessibility → Enable NotchApp
+
+### 5. Play Music
 
 Open any music app (Spotify, Apple Music, YouTube) and play a song. The notch will automatically display the currently playing track!
 
@@ -226,6 +251,11 @@ NotchApp/
 -   Xcode 15.0 or later
 -   Swift 5.9 or later
 -   MacBook with notch (recommended, but works on all Macs)
+-   **Accessibility permissions** (for keyboard shortcuts)
+
+## 📦 Dependencies
+
+-   **[KeyboardShortcuts](https://github.com/sindresorhus/KeyboardShortcuts)** - Global hotkey support (MIT License)
 
 ## 🐛 Troubleshooting
 
@@ -260,6 +290,25 @@ Please read our [Contributing Guidelines](CONTRIBUTING.md) before submitting a P
 3. Commit your changes (`git commit -m 'Add some amazing feature'`)
 4. Push to the branch (`git push origin feature/amazing-feature`)
 5. Open a Pull Request
+
+## ⌨️ Keyboard Shortcuts
+
+NotchApp includes **10 customizable global keyboard shortcuts**! Press `⌘,` to open settings and navigate to the **Shortcuts** tab.
+
+**Default Shortcuts:**
+
+-   `⌘⇧N` - Toggle notch
+-   `⌘⇧E` - Expand notch
+-   `⌘⇧C` - Collapse notch
+-   `⌘⇧1` - Switch to Nook tab
+-   `⌘⇧2` - Switch to Tray tab
+-   `⌘⇧P` - Play/Pause
+-   `⌘⇧→` - Next track
+-   `⌘⇧←` - Previous track
+-   `⌘,` - Open settings
+-   `⌘⇧K` - Clear tray
+
+📖 **Full guide with customization tips:** [KEYBOARD_SHORTCUTS.md](KEYBOARD_SHORTCUTS.md)
 
 ## 📄 License
 

@@ -27,7 +27,7 @@ struct SettingsView: View {
                     .padding(.bottom, 20)
             }
         }
-        .frame(width: 480, height: 520)
+        .frame(width: 580, height: 620)
         .background(Color(NSColor.windowBackgroundColor))
     }
 
@@ -104,6 +104,20 @@ struct SettingsView: View {
                     removal: .opacity.combined(with: .scale(scale: 0.96).combined(with: .move(edge: .leading)))
                 ))
                 .id("general")
+        case .keyboardShortcuts:
+            KeyboardShortcutsSettingsView()
+                .transition(.asymmetric(
+                    insertion: .opacity.combined(with: .scale(scale: 0.96).combined(with: .move(edge: .trailing))),
+                    removal: .opacity.combined(with: .scale(scale: 0.96).combined(with: .move(edge: .leading)))
+                ))
+                .id("keyboardShortcuts")
+        case .advanced:
+            AdvancedSettingsView()
+                .transition(.asymmetric(
+                    insertion: .opacity.combined(with: .scale(scale: 0.96).combined(with: .move(edge: .trailing))),
+                    removal: .opacity.combined(with: .scale(scale: 0.96).combined(with: .move(edge: .leading)))
+                ))
+                .id("advanced")
         case .about:
             AboutSettingsView()
                 .transition(.asymmetric(
@@ -118,6 +132,8 @@ struct SettingsView: View {
 // MARK: - Settings Tab Enum
 enum SettingsTab: String, CaseIterable, Identifiable {
     case general
+    case keyboardShortcuts
+    case advanced
     case about
 
     var id: String { rawValue }
@@ -125,6 +141,8 @@ enum SettingsTab: String, CaseIterable, Identifiable {
     var title: String {
         switch self {
         case .general: return "General"
+        case .keyboardShortcuts: return "Shortcuts"
+        case .advanced: return "Advanced"
         case .about: return "About"
         }
     }
@@ -132,6 +150,8 @@ enum SettingsTab: String, CaseIterable, Identifiable {
     var icon: String {
         switch self {
         case .general: return "gearshape.fill"
+        case .keyboardShortcuts: return "keyboard"
+        case .advanced: return "gearshape.2.fill"
         case .about: return "info.circle.fill"
         }
     }

@@ -27,10 +27,12 @@ final class MediaPlayerManager: ObservableObject {
     init() {
         loadMediaRemoteFramework()
         setupMediaMonitoring()
+        setupKeyboardShortcutObservers()
     }
 
     deinit {
         stopMonitoring()
+        NotificationCenter.default.removeObserver(self)
     }
 
     // MARK: - Public Methods
@@ -148,6 +150,44 @@ final class MediaPlayerManager: ObservableObject {
                 object: nil
             )
         }
+    }
+
+    private func setupKeyboardShortcutObservers() {
+        // Observe keyboard shortcut notifications for media controls
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(handleTogglePlayPauseShortcut),
+            name: .mediaTogglePlayPause,
+            object: nil
+        )
+
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(handleNextTrackShortcut),
+            name: .mediaNextTrack,
+            object: nil
+        )
+
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(handlePreviousTrackShortcut),
+            name: .mediaPreviousTrack,
+            object: nil
+        )
+
+        logInfo("Keyboard shortcut observers registered", category: .media)
+    }
+
+    @objc private func handleTogglePlayPauseShortcut(_ notification: Notification) {
+        togglePlayPause()
+    }
+
+    @objc private func handleNextTrackShortcut(_ notification: Notification) {
+        nextTrack()
+    }
+
+    @objc private func handlePreviousTrackShortcut(_ notification: Notification) {
+        previousTrack()
     }
 
     @objc private func handleMediaChange(_ notification: Notification) {
