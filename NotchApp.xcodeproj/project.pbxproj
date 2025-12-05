@@ -11,9 +11,9 @@
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
-		FA2F15502EE0373D00A4D34A /* NotchApp */ = {
+		FA2F15502EE0373D00A4D34A /* App */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
-			path = NotchApp;
+			path = App;
 			sourceTree = "<group>";
 		};
 /* End PBXFileSystemSynchronizedRootGroup section */
@@ -32,7 +32,7 @@
 		FA2F15452EE0373D00A4D34A = {
 			isa = PBXGroup;
 			children = (
-				FA2F15502EE0373D00A4D34A /* NotchApp */,
+				FA2F15502EE0373D00A4D34A /* App */,
 				FA2F154F2EE0373D00A4D34A /* Products */,
 			);
 			sourceTree = "<group>";
@@ -61,7 +61,7 @@
 			dependencies = (
 			);
 			fileSystemSynchronizedGroups = (
-				FA2F15502EE0373D00A4D34A /* NotchApp */,
+				FA2F15502EE0373D00A4D34A /* App */,
 			);
 			name = NotchApp;
 			packageProductDependencies = (
