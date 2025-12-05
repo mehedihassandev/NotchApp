@@ -1,0 +1,13 @@
+#!/bin/zsh
+
+# Branch naming convention
+branch_name=$(git symbolic-ref --short HEAD)
+branch_regex="^(feature|bugfix|chore|docs)/.+$"
+
+if [[ ! $branch_name =~ $branch_regex ]]; then
+  echo "Error: Branch name '$branch_name' does not follow the convention."
+  echo "Please use one of the following formats: feature/<description>, bugfix/<description>, chore/<description>, docs/<description>"
+  exit 1
+fi
+
+exit 0

@@ -1,0 +1,24 @@
+#!/bin/zsh
+
+# Branch naming convention
+branch_name=$(git symbolic-ref --short HEAD)
+branch_regex="^(feature|bugfix|chore|docs)/.+$"
+
+if [[ ! $branch_name =~ $branch_regex ]]; then
+  echo "Error: Branch name '$branch_name' does not follow the convention."
+  echo "Please use one of the following formats: feature/<description>, bugfix/<description>, chore/<description>, docs/<description>"
+  exit 1
+fi
+
+# Commit message convention
+commit_msg_file=$1
+commit_msg=$(cat $commit_msg_file)
+commit_regex="^(feat|fix|chore|docs|style|refactor|test)(\(.+\))?: .+$"
+
+if [[ ! $commit_msg =~ $commit_regex ]]; then
+  echo "Error: Commit message does not follow the Conventional Commits specification."
+  echo "Please use the format: type(scope): description"
+  exit 1
+fi
+
+exit 0
