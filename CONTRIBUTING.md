@@ -244,13 +244,31 @@ Use `AppConstants` for magic numbers:
 -   Check for memory leaks with Instruments
 -   Verify window positioning on different screen sizes
 
+## 🌿 Branching Strategy
+
+All development should happen in a dedicated branch, not on `main`. Please name your branches using the following convention:
+
+-   **feature/<description>**: For new features (e.g., `feature/add-lyrics-support`)
+-   **bugfix/<description>**: For fixing bugs (e.g., `bugfix/fix-crash-on-launch`)
+-   **chore/<description>**: For maintenance tasks (e.g., `chore/update-dependencies`)
+-   **docs/<description>**: For documentation changes (e.g., `docs/update-readme`)
+
+## 💬 Commit Messages
+
+Follow the [Conventional Commits](https://www.conventionalcommits.org/) specification. Each commit message should consist of a **type**, a **scope** (optional), and a **description**.
+
+**Format**: `type(scope): description`
+
+-   **Types**: `feat`, `fix`, `chore`, `docs`, `style`, `refactor`, `test`
+-   **Example**: `feat(media): Add support for Apple Music playback`
+
 ## 📝 Pull Request Process
 
-1. Create a feature branch from `main`
-2. Follow the code style guidelines
-3. Include relevant documentation
-4. Test your changes thoroughly
-5. Submit a PR with a clear description
+1.  **Branch and Commit**: Create a branch and make your changes with clear, conventional commit messages.
+2.  **Push**: Push your branch to the remote repository: `git push origin feature/<your-branch-name>`
+3.  **Create PR**: Open a pull request from your branch to the `main` branch.
+4.  **Describe**: Provide a clear and concise description of your changes in the pull request.
+5.  **Test**: Ensure your changes have been thoroughly tested.
 
 ## 🐛 Reporting Issues
 
