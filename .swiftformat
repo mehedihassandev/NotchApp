@@ -1,0 +1,14 @@
+--indent 4
+--linebreaks lf
+--trimwhitespace always
+--binarygrouping none
+--decimalgrouping none
+--hexgrouping none
+--octalgrouping none
+--semicolons never
+--stripunusedargs closure-only
+--trailingclosures
+--wraparguments before-first
+--wrapcollections before-first
+--rules sortImports,redundantSelf,redundantVoidReturnType,blankLinesBetweenScopes,redundantGet
+--trailingcommas always

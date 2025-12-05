@@ -6,14 +6,21 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		FAE075072EE28B0B00960D6B /* KeyboardShortcuts in Frameworks */ = {isa = PBXBuildFile; productRef = FAE075062EE28B0B00960D6B /* KeyboardShortcuts */; };
+		FAE075102EE292D800960D6B /* LaunchAtLogin in Frameworks */ = {isa = PBXBuildFile; productRef = FAE0750F2EE292D800960D6B /* LaunchAtLogin */; };
+		FAE075132EE2934D00960D6B /* Sparkle in Frameworks */ = {isa = PBXBuildFile; productRef = FAE075122EE2934D00960D6B /* Sparkle */; };
+		FAE075162EE2940000960D6B /* SwiftUIIntrospect in Frameworks */ = {isa = PBXBuildFile; productRef = FAE075152EE2940000960D6B /* SwiftUIIntrospect */; };
+/* End PBXBuildFile section */
+
 /* Begin PBXFileReference section */
 		FA2F154E2EE0373D00A4D34A /* NotchApp.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = NotchApp.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
-		FA2F15502EE0373D00A4D34A /* NotchApp */ = {
+		FA2F15502EE0373D00A4D34A /* App */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
-			path = NotchApp;
+			path = App;
 			sourceTree = "<group>";
 		};
 /* End PBXFileSystemSynchronizedRootGroup section */
@@ -23,6 +30,10 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				FAE075132EE2934D00960D6B /* Sparkle in Frameworks */,
+				FAE075102EE292D800960D6B /* LaunchAtLogin in Frameworks */,
+				FAE075072EE28B0B00960D6B /* KeyboardShortcuts in Frameworks */,
+				FAE075162EE2940000960D6B /* SwiftUIIntrospect in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -32,7 +43,7 @@
 		FA2F15452EE0373D00A4D34A = {
 			isa = PBXGroup;
 			children = (
-				FA2F15502EE0373D00A4D34A /* NotchApp */,
+				FA2F15502EE0373D00A4D34A /* App */,
 				FA2F154F2EE0373D00A4D34A /* Products */,
 			);
 			sourceTree = "<group>";
@@ -61,10 +72,14 @@
 			dependencies = (
 			);
 			fileSystemSynchronizedGroups = (
-				FA2F15502EE0373D00A4D34A /* NotchApp */,
+				FA2F15502EE0373D00A4D34A /* App */,
 			);
 			name = NotchApp;
 			packageProductDependencies = (
+				FAE075062EE28B0B00960D6B /* KeyboardShortcuts */,
+				FAE0750F2EE292D800960D6B /* LaunchAtLogin */,
+				FAE075122EE2934D00960D6B /* Sparkle */,
+				FAE075152EE2940000960D6B /* SwiftUIIntrospect */,
 			);
 			productName = NotchApp;
 			productReference = FA2F154E2EE0373D00A4D34A /* NotchApp.app */;
@@ -94,6 +109,12 @@
 			);
 			mainGroup = FA2F15452EE0373D00A4D34A;
 			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				FAE075052EE28B0B00960D6B /* XCRemoteSwiftPackageReference "KeyboardShortcuts" */,
+				FAE0750E2EE292D800960D6B /* XCRemoteSwiftPackageReference "LaunchAtLogin-Modern" */,
+				FAE075112EE2934D00960D6B /* XCRemoteSwiftPackageReference "Sparkle" */,
+				FAE075142EE2940000960D6B /* XCRemoteSwiftPackageReference "SwiftUI-Introspect" */,
+			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = FA2F154F2EE0373D00A4D34A /* Products */;
 			projectDirPath = "";
@@ -345,6 +366,64 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		FAE075052EE28B0B00960D6B /* XCRemoteSwiftPackageReference "KeyboardShortcuts" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/sindresorhus/KeyboardShortcuts";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 2.4.0;
+			};
+		};
+		FAE0750E2EE292D800960D6B /* XCRemoteSwiftPackageReference "LaunchAtLogin-Modern" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/sindresorhus/LaunchAtLogin-Modern";
+			requirement = {
+				branch = main;
+				kind = branch;
+			};
+		};
+		FAE075112EE2934D00960D6B /* XCRemoteSwiftPackageReference "Sparkle" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/sparkle-project/Sparkle";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 2.8.1;
+			};
+		};
+		FAE075142EE2940000960D6B /* XCRemoteSwiftPackageReference "SwiftUI-Introspect" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/siteline/SwiftUI-Introspect";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 1.3.0;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		FAE075062EE28B0B00960D6B /* KeyboardShortcuts */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = FAE075052EE28B0B00960D6B /* XCRemoteSwiftPackageReference "KeyboardShortcuts" */;
+			productName = KeyboardShortcuts;
+		};
+		FAE0750F2EE292D800960D6B /* LaunchAtLogin */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = FAE0750E2EE292D800960D6B /* XCRemoteSwiftPackageReference "LaunchAtLogin-Modern" */;
+			productName = LaunchAtLogin;
+		};
+		FAE075122EE2934D00960D6B /* Sparkle */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = FAE075112EE2934D00960D6B /* XCRemoteSwiftPackageReference "Sparkle" */;
+			productName = Sparkle;
+		};
+		FAE075152EE2940000960D6B /* SwiftUIIntrospect */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = FAE075142EE2940000960D6B /* XCRemoteSwiftPackageReference "SwiftUI-Introspect" */;
+			productName = SwiftUIIntrospect;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = FA2F15462EE0373D00A4D34A /* Project object */;
 }

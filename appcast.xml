@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="utf-8"?>
+<rss version="2.0" xmlns:sparkle="http://www.andymatuschak.org/xml-namespaces/sparkle" xmlns:dc="http://purl.org/dc/elements/1.1/">
+    <channel>
+        <title>NotchApp Updates</title>
+        <link>https://github.com/mdmehedihassan/NotchApp</link>
+        <description>Most recent updates to NotchApp</description>
+        <language>en</language>
+
+        <!--
+            TEMPLATE: Add new releases here
+
+            To publish an update:
+            1. Build and archive your app in Xcode
+            2. Export as a macOS app (Developer ID signed)
+            3. Create a .zip of the .app
+            4. Generate signature:
+               - Sign with your Developer ID
+               - Use Sparkle's generate_appcast tool
+            5. Upload .zip to GitHub releases
+            6. Add entry below with correct version, date, URL, and signature
+        -->
+
+        <!-- Example Release Entry (REMOVE WHEN ADDING REAL RELEASES) -->
+        <item>
+            <title>Version 1.1.0</title>
+            <link>https://github.com/mdmehedihassan/NotchApp</link>
+            <sparkle:version>1.1.0</sparkle:version>
+            <sparkle:shortVersionString>1.1.0</sparkle:shortVersionString>
+            <description><![CDATA[
+                <h2>What's New in Version 1.1.0</h2>
+                <ul>
+                    <li>Added keyboard shortcuts for quick access</li>
+                    <li>Launch at login support</li>
+                    <li>Automatic update checking</li>
+                    <li>Performance improvements</li>
+                    <li>Bug fixes</li>
+                </ul>
+            ]]></description>
+            <pubDate>Mon, 05 Dec 2024 12:00:00 +0000</pubDate>
+            <enclosure
+                url="https://github.com/mdmehedihassan/NotchApp/releases/download/v1.1.0/NotchApp-1.1.0.zip"
+                sparkle:version="1.1.0"
+                sparkle:shortVersionString="1.1.0"
+                length="10485760"
+                type="application/octet-stream"
+                sparkle:edSignature="YOUR_SIGNATURE_HERE" />
+            <sparkle:minimumSystemVersion>13.0</sparkle:minimumSystemVersion>
+        </item>
+
+        <!-- Initial Release -->
+        <item>
+            <title>Version 1.0.0</title>
+            <link>https://github.com/mdmehedihassan/NotchApp</link>
+            <sparkle:version>1.0.0</sparkle:version>
+            <sparkle:shortVersionString>1.0.0</sparkle:shortVersionString>
+            <description><![CDATA[
+                <h2>Welcome to NotchApp 1.0.0!</h2>
+                <ul>
+                    <li>System-wide music detection from any app</li>
+                    <li>Beautiful notch integration with glassmorphism design</li>
+                    <li>Dropover-style file tray with AirDrop support</li>
+                    <li>Smooth animations and hover interactions</li>
+                    <li>Quick action buttons for common tasks</li>
+                </ul>
+            ]]></description>
+            <pubDate>Wed, 04 Dec 2024 12:00:00 +0000</pubDate>
+            <enclosure
+                url="https://github.com/mdmehedihassan/NotchApp/releases/download/v1.0.0/NotchApp-1.0.0.zip"
+                sparkle:version="1.0.0"
+                sparkle:shortVersionString="1.0.0"
+                length="10485760"
+                type="application/octet-stream"
+                sparkle:edSignature="YOUR_SIGNATURE_HERE" />
+            <sparkle:minimumSystemVersion>13.0</sparkle:minimumSystemVersion>
+        </item>
+
+    </channel>
+</rss>

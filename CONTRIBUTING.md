@@ -1,139 +1,267 @@
 # Contributing to NotchApp
 
-First off, thank you for considering contributing to NotchApp! It's people like you that make NotchApp such a great tool.
+Thank you for your interest in contributing to NotchApp! This document provides guidelines and information for contributors.
 
-## Code of Conduct
-
-By participating in this project, you are expected to uphold our Code of Conduct. Please be respectful and considerate in all interactions.
-
-## How Can I Contribute?
-
-### Reporting Bugs
-
-Before creating bug reports, please check the existing issues to avoid duplicates. When you create a bug report, include as many details as possible:
-
--   **Use a clear and descriptive title**
--   **Describe the exact steps to reproduce the problem**
--   **Provide specific examples to demonstrate the steps**
--   **Describe the behavior you observed and what you expected to see**
--   **Include screenshots or animated GIFs if possible**
--   **Note your macOS version and NotchApp version**
-
-### Suggesting Enhancements
-
-Enhancement suggestions are tracked as GitHub issues. When creating an enhancement suggestion:
-
--   **Use a clear and descriptive title**
--   **Provide a detailed description of the suggested enhancement**
--   **Explain why this enhancement would be useful**
--   **List any examples of how it would work**
-
-### Pull Requests
-
-1. **Fork the repository** and create your branch from `main`:
-
-    ```bash
-    git checkout -b feature/amazing-feature
-    ```
-
-2. **Make your changes**:
-
-    - Follow the existing code style
-    - Write clear, concise commit messages
-    - Add tests if applicable
-    - Update documentation as needed
-
-3. **Test your changes**:
-
-    - Ensure the app builds successfully
-    - Test all functionality you've modified
-    - Check for any warnings or errors
-
-4. **Commit your changes**:
-
-    ```bash
-    git commit -m "Add amazing feature"
-    ```
-
-5. **Push to your fork**:
-
-    ```bash
-    git push origin feature/amazing-feature
-    ```
-
-6. **Open a Pull Request** and fill out the template
-
-## Development Setup
-
-Please refer to [SETUP.md](SETUP.md) for detailed instructions on setting up your development environment.
-
-### Quick Start
-
-1. Clone the repository
-2. Open `NotchApp.xcodeproj` in Xcode
-3. Build and run (⌘R)
-
-## Style Guidelines
-
-### Swift Code Style
-
--   Use Swift naming conventions
--   Follow SwiftUI best practices
--   Keep functions focused and concise
--   Add comments for complex logic
--   Use meaningful variable and function names
-
-### Commit Messages
-
--   Use the present tense ("Add feature" not "Added feature")
--   Use the imperative mood ("Move cursor to..." not "Moves cursor to...")
--   Limit the first line to 72 characters or less
--   Reference issues and pull requests liberally after the first line
-
-Example:
-
-```
-Add music visualization feature
-
-- Implement AVAudioPlayer integration
-- Add waveform visualization component
-- Update UI for media playback controls
-
-Fixes #123
-```
-
-## Project Structure
+## 📁 Project Structure
 
 ```
 NotchApp/
-├── Models/          # Data models
-├── Views/           # SwiftUI views
-├── ViewModels/      # View models and business logic
-├── Persistence/     # Core Data persistence
-└── Shared/          # Shared utilities and extensions
+├── Core/                           # Core infrastructure
+│   ├── Constants/
+│   │   └── AppConstants.swift      # Window (580×400), Animation, MediaPlayer, Layout, Opacity
+│   ├── Extensions/
+│   │   ├── View+Extensions.swift   # cardStyle, glassStyle, hoverScale, pressEffect, standardShadow
+│   │   └── NSWindow+Extensions.swift # smoothResize, fadeIn/Out, NSScreen.notchHeight
+│   ├── Protocols/
+│   │   └── MediaControlling.swift  # MediaControlling protocol, MediaRemoteCommand enum, function types
+│   ├── Theme/
+│   │   └── AppTheme.swift          # Colors, Typography (rounded fonts), Shadows, Animations
+│   └── Utilities/
+│       ├── Logger.swift            # AppLogger with Category enum and global convenience functions
+│       └── HapticManager.swift     # NSHapticFeedbackManager wrapper for Force Touch
+│
+├── Models/
+│   └── MediaInfo.swift             # Identifiable, Equatable model with progress, formatting, placeholder
+│
+├── ViewModels/
+│   ├── MediaPlayerManager.swift    # MediaRemote.framework integration with CFBundle loading
+│   └── NotchState.swift            # Singleton ObservableObject, NotchTab enum (TabItem protocol)
+│
+├── Views/
+│   ├── NotchBarView.swift          # Main container with multi-phase animations (glow/scale/content)
+│   ├── DashboardView.swift         # Nook tab - AlbumArtworkWithBadge, PlaybackControlsRow, QuickActionPill
+│   └── TrayView.swift              # Tray tab - TrayItem, TrayStorageManager, AirDropState, TrayFileChip
+│
+├── UI/
+│   └── Components/
+│       ├── Buttons/
+│       │   └── ActionButtons.swift # QuickActionPill (pill buttons), IconButton (circular buttons)
+│       ├── Effects/
+│       │   └── VisualEffectView.swift # NSViewRepresentable for NSVisualEffectView
+│       ├── Media/
+│       │   ├── AlbumArtworkView.swift # With placeholder gradient and optional badge
+│       │   ├── PlaybackControls.swift # PlaybackControlButton (sizes: small/medium/large)
+│       │   └── MusicBarsView.swift # Timer-based animated bars with configurable gradient
+│       ├── Navigation/
+│       │   └── TabSwitcher.swift   # Generic TabSwitcher<Tab: TabItem> with matchedGeometryEffect
+│       └── Shapes/
+│           └── NotchShape.swift    # Custom Shape with sharp top, rounded bottom corners
+│
+├── Persistence/
+│   └── PersistenceController.swift # Core Data stack with history tracking, preview support
+│
+├── NotchAppApp.swift               # @main entry, AppDelegate (accessory activation policy)
+└── NotchWindowController.swift     # NotchWindow (NSWindow), DropTargetView (NSView), drag detection
 ```
 
-## Testing
+## 🎨 Code Style Guidelines
 
--   Write unit tests for new functionality
--   Ensure existing tests pass
--   Test on multiple macOS versions if possible
+### Swift Style
 
-## Documentation
+-   Use `// MARK: -` comments to organize code sections
+-   Follow Apple's Swift naming conventions
+-   Use `final` for classes that shouldn't be subclassed (e.g., `final class AppDelegate`, `final class NotchWindow`)
+-   Prefer `private` access level by default
+-   Use meaningful variable and function names
+-   Use `@StateObject` for owned observable objects, `@ObservedObject` for passed-in objects
+-   Prefer composition via extensions to organize code (see NotchBarView)
 
--   Update README.md if needed
--   Add inline documentation for public APIs
--   Update ARCHITECTURE.md for significant changes
--   Keep VISUAL_GUIDE.md updated with UI changes
+### File Organization
 
-## Questions?
+Each Swift file should follow this structure:
 
-Feel free to open an issue with your question or reach out to the maintainers.
+```swift
+import SwiftUI
 
-## Recognition
+// MARK: - Type Name
+/// Brief description of the type
 
-Contributors will be recognized in our README.md file. Thank you for your contributions!
+struct/class TypeName {
 
----
+    // MARK: - Properties
+    @StateObject private var mediaManager = MediaPlayerManager()
+    @State private var isHovering = false
 
-Happy coding! 🚀
+    // MARK: - Initialization
+    init(...) { }
+
+    // MARK: - Body (for Views)
+    var body: some View { ... }
+
+    // MARK: - Public Methods
+
+    // MARK: - Private Methods
+}
+
+// MARK: - Extensions (for organizing view code)
+extension TypeName {
+    private var collapsedNotch: some View { ... }
+    private var expandedContent: some View { ... }
+}
+
+// MARK: - Preview
+#Preview {
+    TypeName()
+}
+```
+
+### Documentation
+
+-   Add documentation comments (`///`) for public APIs and types
+-   Include parameter descriptions for complex functions
+-   Use inline comments sparingly for non-obvious logic
+-   Global logging functions available: `logDebug()`, `logInfo()`, `logWarning()`, `logError()`
+
+## 🧩 Component Guidelines
+
+### Creating Reusable Components
+
+1. Place in appropriate `UI/Components/` subdirectory
+2. Make configurable via parameters with sensible defaults
+3. Include `#Preview` for visual development
+4. Use `AppTheme` and `AppConstants` for styling
+5. Support both light interactions (hover) and press feedback
+
+Example (based on actual `QuickActionPill`):
+
+```swift
+struct QuickActionPill: View {
+
+    // MARK: - Properties
+    let icon: String
+    let title: String
+    let iconColor: Color
+    let action: () -> Void
+
+    @State private var isPressed = false
+    @State private var isHovering = false
+
+    // MARK: - Initialization
+    init(
+        icon: String,
+        title: String,
+        iconColor: Color = .white,
+        action: @escaping () -> Void
+    ) {
+        self.icon = icon
+        self.title = title
+        self.iconColor = iconColor
+        self.action = action
+    }
+
+    // MARK: - Body
+    var body: some View {
+        Button(action: handleTap) {
+            HStack(spacing: 6) {
+                Image(systemName: icon)
+                    .font(.system(size: 10, weight: .bold))
+                    .foregroundColor(iconColor)
+
+                Text(title)
+                    .font(AppTheme.Typography.body())
+                    .foregroundColor(AppTheme.Colors.textPrimary.opacity(0.9))
+            }
+            .padding(.horizontal, 12)
+            .padding(.vertical, 10)
+            .frame(maxWidth: .infinity)
+            .cardStyle(isHovering: isHovering)
+        }
+        .buttonStyle(.plain)
+        .pressEffect(isPressed)
+        .onHover { hovering in
+            withAnimation(AppTheme.Animations.hover) {
+                isHovering = hovering
+            }
+        }
+    }
+
+    // MARK: - Actions
+    private func handleTap() {
+        withAnimation(.spring(response: 0.2, dampingFraction: 0.6)) {
+            isPressed = true
+        }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+            isPressed = false
+            action()
+        }
+    }
+}
+
+#Preview {
+    QuickActionPill(icon: "sparkles", title: "Spotify", iconColor: .green) { }
+        .frame(width: 120)
+        .padding()
+        .background(Color.black)
+}
+```
+
+### Using the Theme System
+
+Always use `AppTheme` for colors and typography:
+
+```swift
+// ✅ Good
+Text("Hello")
+    .font(AppTheme.Typography.title())
+    .foregroundColor(AppTheme.Colors.textPrimary)
+
+// ❌ Avoid
+Text("Hello")
+    .font(.system(size: 17, weight: .bold))
+    .foregroundColor(.white)
+```
+
+### Using Constants
+
+Use `AppConstants` for magic numbers:
+
+```swift
+// ✅ Good
+.padding(AppConstants.Layout.padding)
+.cornerRadius(AppConstants.Layout.cornerRadius)
+
+// ❌ Avoid
+.padding(16)
+.cornerRadius(14)
+```
+
+## 🔧 Development Setup
+
+1. Clone the repository
+2. Open `NotchApp.xcodeproj` in Xcode
+3. Select a macOS target with a notch (or any macOS 12+ target)
+4. Build and run
+
+## 🧪 Testing
+
+-   Test on both notch and non-notch MacBooks
+-   Verify media controls with various apps (Spotify, Apple Music, YouTube, browser media)
+-   Test hover interactions and multi-phase animations
+-   Test file drag detection from Finder and other apps
+-   Verify AirDrop integration in TrayView
+-   Check tab switching between Nook and Tray with matched geometry
+-   Test collapsed state media display (artwork, title, music bars)
+-   Check for memory leaks with Instruments
+-   Verify window positioning on different screen sizes
+
+## 📝 Pull Request Process
+
+1. Create a feature branch from `main`
+2. Follow the code style guidelines
+3. Include relevant documentation
+4. Test your changes thoroughly
+5. Submit a PR with a clear description
+
+## 🐛 Reporting Issues
+
+Include:
+
+-   macOS version
+-   MacBook model
+-   Steps to reproduce
+-   Expected vs actual behavior
+-   Screenshots/videos if applicable
+
+## 📜 License
+
+By contributing, you agree that your contributions will be licensed under the project's license.
