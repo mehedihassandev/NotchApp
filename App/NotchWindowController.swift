@@ -1,85 +1,38 @@
 import SwiftUI
 import AppKit
 import Combine
+import SwiftUIIntrospect
 
-// MARK: - Drop Target View
-/// Custom NSView that handles file drag-and-drop detection
-final class DropTargetView: NSView {
+// MARK: - Notch Window Controller
+/// Controller for managing the notch window lifecycle
+/// Uses SwiftUIIntrospect for better SwiftUI ↔ AppKit interop
 
-    override init(frame frameRect: NSRect) {
-        super.init(frame: frameRect)
-        registerForDraggedTypes([.fileURL])
-    }
-
-    required init?(coder: NSCoder) {
-        super.init(coder: coder)
-        registerForDraggedTypes([.fileURL])
-    }
-
-    override func draggingEntered(_ sender: NSDraggingInfo) -> NSDragOperation {
-        let pasteboard = sender.draggingPasteboard
-        if pasteboard.canReadObject(forClasses: [NSURL.self], options: [.urlReadingFileURLsOnly: true]) {
-            DispatchQueue.main.async {
-                NotchState.shared.fileDragEntered()
-            }
-            return .copy
-        }
-        return []
-    }
-
-    override func draggingUpdated(_ sender: NSDraggingInfo) -> NSDragOperation {
-        let pasteboard = sender.draggingPasteboard
-        if pasteboard.canReadObject(forClasses: [NSURL.self], options: [.urlReadingFileURLsOnly: true]) {
-            return .copy
-        }
-        return []
-    }
-
-    override func draggingExited(_ sender: NSDraggingInfo?) {
-        // We don't reset the state here because the TrayView handles the drop
-    }
-
-    override func performDragOperation(_ sender: NSDraggingInfo) -> Bool {
-        // Let SwiftUI handle the actual drop
-        return false
-    }
-
-    override func draggingEnded(_ sender: NSDraggingInfo) {
-        DispatchQueue.main.async {
-            NotchState.shared.fileDragExited()
-        }
-    }
-}
-
-// MARK: - Notch Window
-/// Custom NSWindow subclass for the notch interface
-/// Handles positioning, tracking areas, and mouse event management
-
-final class NotchWindow: NSWindow {
+final class NotchWindowController: NSWindowController {
 
     // MARK: - Private Properties
-    private var trackingArea: NSTrackingArea?
     private var cancellables = Set<AnyCancellable>()
-    private var dropTargetView: DropTargetView?
     private var dragTrackingTimer: Timer?
     private var settingsCancellable: AnyCancellable?
 
     // MARK: - Initialization
-    override init(
-        contentRect: NSRect,
-        styleMask style: NSWindow.StyleMask,
-        backing backingStoreType: NSWindow.BackingStoreType,
-        defer flag: Bool
-    ) {
-        super.init(
-            contentRect: contentRect,
+
+    convenience init() {
+        let window = NSWindow(
+            contentRect: NSRect(
+                x: 0,
+                y: 0,
+                width: AppConstants.Window.width,
+                height: AppConstants.Window.height
+            ),
             styleMask: [.borderless, .fullSizeContentView],
-            backing: backingStoreType,
-            defer: flag
+            backing: .buffered,
+            defer: false
         )
 
+        self.init(window: window)
+
         configureWindow()
-        positionWindow()
+        setupContentView()
         setupObservers()
         setupDragTracking()
     }
@@ -92,14 +45,39 @@ final class NotchWindow: NSWindow {
     // MARK: - Window Configuration
 
     private func configureWindow() {
-        isOpaque = false
-        backgroundColor = .clear
-        hasShadow = true
-        level = .statusBar
-        collectionBehavior = [.canJoinAllSpaces, .stationary, .ignoresCycle, .fullScreenAuxiliary]
-        isMovableByWindowBackground = false
-        acceptsMouseMovedEvents = true
-        ignoresMouseEvents = true  // Initially ignore mouse events when collapsed
+        guard let window = window else { return }
+
+        window.isOpaque = false
+        window.backgroundColor = .clear
+        window.hasShadow = true
+        window.level = .statusBar
+        window.collectionBehavior = [.canJoinAllSpaces, .stationary, .ignoresCycle, .fullScreenAuxiliary]
+        window.isMovableByWindowBackground = false
+        window.acceptsMouseMovedEvents = true
+        window.ignoresMouseEvents = true  // Initially ignore mouse events when collapsed
+        window.animationBehavior = .utilityWindow
+
+        positionWindow()
+    }
+
+    // MARK: - Setup
+
+    private func setupContentView() {
+        guard let window = window else { return }
+
+        let contentView = NSHostingView(
+            rootView: NotchBarView()
+                .introspect(.window, on: .macOS(.v14, .v15)) { nsWindow in
+                    // Additional window configuration via introspection
+                    nsWindow.isOpaque = false
+                    nsWindow.backgroundColor = .clear
+                }
+        )
+        contentView.layer?.backgroundColor = .clear
+        window.contentView = contentView
+
+        // Register for drag and drop
+        window.registerForDraggedTypes([.fileURL])
     }
 
     // MARK: - Observers
@@ -126,7 +104,7 @@ final class NotchWindow: NSWindow {
             .receive(on: DispatchQueue.main)
             .sink { [weak self] isDragging in
                 if isDragging {
-                    self?.ignoresMouseEvents = false
+                    self?.window?.ignoresMouseEvents = false
                 }
             }
             .store(in: &cancellables)
@@ -135,8 +113,8 @@ final class NotchWindow: NSWindow {
         settingsCancellable = SettingsManager.shared.$enableNotch
             .receive(on: DispatchQueue.main)
             .sink { [weak self] enabled in
-                self?.alphaValue = enabled ? 1.0 : 0.0
-                self?.ignoresMouseEvents = !enabled
+                self?.window?.alphaValue = enabled ? 1.0 : 0.0
+                self?.window?.ignoresMouseEvents = !enabled
             }
     }
 
@@ -193,24 +171,10 @@ final class NotchWindow: NSWindow {
         positionWindow()
     }
 
-    // MARK: - Setup Drop Target
-
-    func setupDropTarget(in hostingView: NSView) {
-        // Create a transparent drop target view that sits on top
-        dropTargetView = DropTargetView(frame: hostingView.bounds)
-        dropTargetView?.autoresizingMask = [.width, .height]
-        dropTargetView?.wantsLayer = true
-        dropTargetView?.layer?.backgroundColor = .clear
-
-        if let dropView = dropTargetView {
-            hostingView.addSubview(dropView)
-        }
-    }
-
     // MARK: - Window Positioning
 
     private func positionWindow() {
-        guard let screen = NSScreen.main else { return }
+        guard let window = window, let screen = NSScreen.main else { return }
 
         let screenFrame = screen.frame
         let windowWidth = AppConstants.Window.width
@@ -220,41 +184,11 @@ final class NotchWindow: NSWindow {
         let xPos = (screenFrame.width - windowWidth) / 2 + screenFrame.origin.x
         let yPos = screenFrame.maxY - windowHeight
 
-        setFrame(
+        window.setFrame(
             NSRect(x: xPos, y: yPos, width: windowWidth, height: windowHeight),
             display: true,
             animate: false
         )
-
-        setupTrackingArea()
-    }
-
-    // MARK: - Tracking Area
-
-    private func setupTrackingArea() {
-        // Remove existing tracking area
-        if let existingArea = trackingArea {
-            contentView?.removeTrackingArea(existingArea)
-        }
-
-        // Create tracking area for top portion of window (notch area)
-        guard let contentView = contentView else { return }
-
-        let trackingRect = NSRect(
-            x: 0,
-            y: contentView.bounds.height - AppConstants.Window.trackingAreaHeight,
-            width: contentView.bounds.width,
-            height: AppConstants.Window.trackingAreaHeight
-        )
-
-        trackingArea = NSTrackingArea(
-            rect: trackingRect,
-            options: [.mouseEnteredAndExited, .activeAlways, .inVisibleRect],
-            owner: self,
-            userInfo: nil
-        )
-
-        contentView.addTrackingArea(trackingArea!)
     }
 
     // MARK: - Mouse Event Handling
@@ -262,58 +196,7 @@ final class NotchWindow: NSWindow {
     private func updateMouseEventHandling(isExpanded: Bool) {
         // When collapsed, ignore mouse events to allow clicking through
         // When expanded, capture mouse events for interaction
-        ignoresMouseEvents = !isExpanded
-    }
-
-    // MARK: - Window Properties Override
-
-    override var canBecomeKey: Bool {
-        return true
-    }
-
-    override var canBecomeMain: Bool {
-        return false
-    }
-}
-
-// MARK: - Notch Window Controller
-/// Controller for managing the notch window lifecycle
-
-final class NotchWindowController: NSWindowController {
-
-    // MARK: - Initialization
-
-    convenience init() {
-        let window = NotchWindow(
-            contentRect: NSRect(
-                x: 0,
-                y: 0,
-                width: AppConstants.Window.width,
-                height: AppConstants.Window.height
-            ),
-            styleMask: [.borderless, .fullSizeContentView],
-            backing: .buffered,
-            defer: false
-        )
-
-        self.init(window: window)
-
-        setupContentView()
-        configureWindowBehavior()
-    }
-
-    // MARK: - Setup
-
-    private func setupContentView() {
-        guard let window = window else { return }
-
-        let contentView = NSHostingView(rootView: NotchBarView())
-        contentView.layer?.backgroundColor = .clear
-        window.contentView = contentView
-    }
-
-    private func configureWindowBehavior() {
-        window?.animationBehavior = .utilityWindow
+        window?.ignoresMouseEvents = !isExpanded
     }
 
     // MARK: - Lifecycle
