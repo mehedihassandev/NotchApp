@@ -1,5 +1,5 @@
-import Foundation
 import AppKit
+import Foundation
 
 // MARK: - Media Info
 /// Model representing currently playing media information

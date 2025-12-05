@@ -1,5 +1,5 @@
-import SwiftUI
 import AppKit
+import SwiftUI
 
 // MARK: - Visual Effect View
 /// NSViewRepresentable wrapper for NSVisualEffectView
@@ -52,7 +52,7 @@ extension View {
         material: NSVisualEffectView.Material = .hudWindow,
         blendingMode: NSVisualEffectView.BlendingMode = .behindWindow
     ) -> some View {
-        self.background(
+        background(
             VisualEffectView(material: material, blendingMode: blendingMode)
         )
     }

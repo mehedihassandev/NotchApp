@@ -1,5 +1,5 @@
-import SwiftUI
 import Combine
+import SwiftUI
 
 // MARK: - Music Bars Animation
 /// Animated music visualization bars that pulse with playback

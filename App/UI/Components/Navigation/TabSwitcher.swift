@@ -13,7 +13,7 @@ struct TabSwitcher<Tab: TabItem>: View {
 
     // MARK: - Initialization
     init(selectedTab: Binding<Tab>, tabs: [Tab]) {
-        self._selectedTab = selectedTab
+        _selectedTab = selectedTab
         self.tabs = tabs
     }
 

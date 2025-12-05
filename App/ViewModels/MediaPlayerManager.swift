@@ -1,6 +1,6 @@
-import Foundation
-import Combine
 import AppKit
+import Combine
+import Foundation
 
 // MARK: - Media Player Manager
 /// Manager class to fetch and monitor currently playing media from any app

@@ -1,5 +1,5 @@
-import SwiftUI
 import Combine
+import SwiftUI
 
 // MARK: - Settings Manager
 /// Manages all app settings with persistence using UserDefaults
@@ -48,12 +48,12 @@ final class SettingsManager: ObservableObject {
     private init() {
         // Load saved settings or use defaults
         let defaults = UserDefaults.standard
-        self.enableNotch = defaults.object(forKey: Keys.enableNotch) as? Bool ?? true
-        self.notchSize = NotchSizeOption(rawValue: defaults.string(forKey: Keys.notchSize) ?? "") ?? .medium
-        self.enableGlowEffect = defaults.object(forKey: Keys.enableGlowEffect) as? Bool ?? true
-        self.glowIntensity = defaults.object(forKey: Keys.glowIntensity) as? Double ?? 0.7
-        self.cornerRadius = defaults.object(forKey: Keys.cornerRadius) as? Double ?? 14
-        self.enableBlur = defaults.object(forKey: Keys.enableBlur) as? Bool ?? true
+        enableNotch = defaults.object(forKey: Keys.enableNotch) as? Bool ?? true
+        notchSize = NotchSizeOption(rawValue: defaults.string(forKey: Keys.notchSize) ?? "") ?? .medium
+        enableGlowEffect = defaults.object(forKey: Keys.enableGlowEffect) as? Bool ?? true
+        glowIntensity = defaults.object(forKey: Keys.glowIntensity) as? Double ?? 0.7
+        cornerRadius = defaults.object(forKey: Keys.cornerRadius) as? Double ?? 14
+        enableBlur = defaults.object(forKey: Keys.enableBlur) as? Bool ?? true
     }
 
     // MARK: - Methods
@@ -105,6 +105,7 @@ enum NotchSizeOption: String, CaseIterable, Identifiable, CustomStringConvertibl
         var description: String {
             displayName
         }
+
     case small = "small"
     case medium = "medium"
     case large = "large"

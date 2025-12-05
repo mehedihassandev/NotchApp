@@ -1,5 +1,5 @@
-import SwiftUI
 import Combine
+import SwiftUI
 
 // MARK: - Menu Bar Manager
 /// Manages the menu bar icon and status display

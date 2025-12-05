@@ -1,5 +1,5 @@
-import SwiftUI
 import KeyboardShortcuts
+import SwiftUI
 
 // MARK: - Keyboard Shortcuts Settings View
 /// Settings view for customizing global keyboard shortcuts

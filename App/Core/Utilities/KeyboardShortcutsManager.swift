@@ -1,6 +1,6 @@
-import Foundation
-import Combine
 import AppKit
+import Combine
+import Foundation
 import KeyboardShortcuts
 
 // MARK: - Keyboard Shortcuts Manager
@@ -66,7 +66,7 @@ final class KeyboardShortcutsManager: ObservableObject {
     // MARK: - Initialization
     private init() {
         // Load enabled state from UserDefaults
-        self.isEnabled = UserDefaults.standard.object(forKey: "keyboardShortcutsEnabled") as? Bool ?? true
+        isEnabled = UserDefaults.standard.object(forKey: "keyboardShortcutsEnabled") as? Bool ?? true
 
         if isEnabled {
             registerAllShortcuts()

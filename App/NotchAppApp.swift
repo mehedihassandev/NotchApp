@@ -1,9 +1,9 @@
-import SwiftUI
-import CoreData
 import AppKit
+import CoreData
 import KeyboardShortcuts
 import LaunchAtLogin
 import Sparkle
+import SwiftUI
 
 // MARK: - Main App Entry Point
 /// NotchApp - A macOS menu bar companion app for the MacBook notch

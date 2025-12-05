@@ -1,6 +1,6 @@
-import SwiftUI
 import Combine
 import LaunchAtLogin
+import SwiftUI
 
 // MARK: - Launch At Login Manager
 /// Manages the app's launch at login behavior
@@ -21,7 +21,7 @@ final class LaunchAtLoginManager: ObservableObject {
     // MARK: - Initialization
     private init() {
         // Load current state from LaunchAtLogin
-        self.isEnabled = LaunchAtLogin.isEnabled
+        isEnabled = LaunchAtLogin.isEnabled
 
         logInfo("LaunchAtLoginManager initialized (enabled: \(isEnabled))", category: .general)
     }

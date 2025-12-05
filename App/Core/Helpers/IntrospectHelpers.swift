@@ -13,7 +13,7 @@ extension View {
     /// - Parameter customize: Closure to customize the window
     /// - Returns: Modified view with window customization applied
     func customizeWindow(_ customize: @escaping (NSWindow) -> Void) -> some View {
-        self.introspect(.window, on: .macOS(.v14, .v15)) { window in
+        introspect(.window, on: .macOS(.v14, .v15)) { window in
             customize(window)
         }
     }
@@ -22,7 +22,7 @@ extension View {
     /// - Parameter customize: Closure to customize the view
     /// - Returns: Modified view with NSView customization applied
     func customizeNSView(_ customize: @escaping (NSView) -> Void) -> some View {
-        self.introspect(.view, on: .macOS(.v14, .v15)) { view in
+        introspect(.view, on: .macOS(.v14, .v15)) { view in
             customize(view)
         }
     }
@@ -31,7 +31,7 @@ extension View {
     /// - Parameter customize: Closure to customize the scroll view
     /// - Returns: Modified view with scroll view customization applied
     func customizeScrollView(_ customize: @escaping (NSScrollView) -> Void) -> some View {
-        self.introspect(.scrollView, on: .macOS(.v14, .v15)) { scrollView in
+        introspect(.scrollView, on: .macOS(.v14, .v15)) { scrollView in
             customize(scrollView)
         }
     }
@@ -40,7 +40,7 @@ extension View {
     /// - Parameter customize: Closure to customize the text field
     /// - Returns: Modified view with text field customization applied
     func customizeTextField(_ customize: @escaping (NSTextField) -> Void) -> some View {
-        self.introspect(.textField, on: .macOS(.v14, .v15)) { textField in
+        introspect(.textField, on: .macOS(.v14, .v15)) { textField in
             customize(textField)
         }
     }
@@ -49,7 +49,7 @@ extension View {
     /// - Parameter customize: Closure to customize the button
     /// - Returns: Modified view with button customization applied
     func customizeButton(_ customize: @escaping (NSButton) -> Void) -> some View {
-        self.introspect(.button, on: .macOS(.v14, .v15)) { button in
+        introspect(.button, on: .macOS(.v14, .v15)) { button in
             customize(button)
         }
     }
@@ -61,7 +61,7 @@ extension View {
 
     /// Make the window floating and always on top
     func floatingWindow() -> some View {
-        self.customizeWindow { window in
+        customizeWindow { window in
             window.level = .floating
             window.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
         }
@@ -69,7 +69,7 @@ extension View {
 
     /// Make the window transparent
     func transparentWindow() -> some View {
-        self.customizeWindow { window in
+        customizeWindow { window in
             window.isOpaque = false
             window.backgroundColor = .clear
         }
@@ -77,7 +77,7 @@ extension View {
 
     /// Enable vibrancy on the window
     func vibrancyWindow(material: NSVisualEffectView.Material = .hudWindow) -> some View {
-        self.customizeWindow { window in
+        customizeWindow { window in
             let visualEffect = NSVisualEffectView()
             visualEffect.material = material
             visualEffect.blendingMode = .behindWindow
@@ -93,7 +93,7 @@ extension View {
 
     /// Disable scroll bounce
     func disableScrollBounce() -> some View {
-        self.customizeScrollView { scrollView in
+        customizeScrollView { scrollView in
             scrollView.hasVerticalScroller = true
             scrollView.verticalScrollElasticity = .none
         }
@@ -104,7 +104,7 @@ extension View {
         borderStyle: NSTextField.BezelStyle = .roundedBezel,
         backgroundColor: NSColor = .clear
     ) -> some View {
-        self.customizeTextField { textField in
+        customizeTextField { textField in
             textField.bezelStyle = borderStyle
             textField.backgroundColor = backgroundColor
             textField.isBordered = (borderStyle != .squareBezel)

@@ -1,5 +1,5 @@
-import SwiftUI
 import KeyboardShortcuts
+import SwiftUI
 
 // MARK: - Menu Bar Content View
 /// Main content view for the MenuBarExtra dropdown menu

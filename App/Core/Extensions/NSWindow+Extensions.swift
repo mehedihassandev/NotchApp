@@ -20,8 +20,8 @@ extension NSWindow {
     /// Fades the window in smoothly
     /// - Parameter duration: Animation duration
     func fadeIn(duration: TimeInterval = 0.55) {
-        self.alphaValue = 0
-        self.makeKeyAndOrderFront(nil)
+        alphaValue = 0
+        makeKeyAndOrderFront(nil)
 
         NSAnimationContext.runAnimationGroup { context in
             context.duration = duration

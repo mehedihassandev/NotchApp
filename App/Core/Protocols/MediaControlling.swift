@@ -1,5 +1,5 @@
-import Foundation
 import AppKit
+import Foundation
 
 // MARK: - Media Controlling Protocol
 /// Protocol for media playback control

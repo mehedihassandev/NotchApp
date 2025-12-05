@@ -1,5 +1,5 @@
-import SwiftUI
 import Combine
+import SwiftUI
 
 // MARK: - Notch State
 /// Observable state manager for the notch expansion state

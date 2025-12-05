@@ -1,5 +1,5 @@
-import SwiftUI
 import AppKit
+import SwiftUI
 
 // MARK: - Settings Window Opener
 /// Opens settings window programmatically (for notifications and system callbacks)

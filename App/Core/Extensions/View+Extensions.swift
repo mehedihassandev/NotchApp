@@ -11,8 +11,7 @@ extension View {
         isHovering: Bool = false,
         cornerRadius: CGFloat = AppConstants.Layout.cornerRadius
     ) -> some View {
-        self
-            .background(
+        background(
                 RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
                     .fill(isHovering ? AppTheme.Colors.cardBackgroundHover : AppTheme.Colors.cardBackground)
             )
@@ -28,8 +27,7 @@ extension View {
     // MARK: - Glass Style
     /// Applies a glassmorphism effect
     func glassStyle(cornerRadius: CGFloat = AppConstants.Layout.cornerRadius) -> some View {
-        self
-            .background(
+        background(
                 RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
                     .fill(Color.white.opacity(0.06))
                     .overlay(
@@ -42,22 +40,20 @@ extension View {
     // MARK: - Hover Scale Effect
     /// Adds a subtle scale effect on hover
     func hoverScale(_ isHovering: Bool, scale: CGFloat = 1.02) -> some View {
-        self
-            .scaleEffect(isHovering ? scale : 1.0)
+        scaleEffect(isHovering ? scale : 1.0)
             .animation(AppTheme.Animations.springFast, value: isHovering)
     }
 
     // MARK: - Press Effect
     /// Adds a press/tap effect
     func pressEffect(_ isPressed: Bool, scale: CGFloat = 0.96) -> some View {
-        self
-            .scaleEffect(isPressed ? scale : 1.0)
+        scaleEffect(isPressed ? scale : 1.0)
     }
 
     // MARK: - Standard Shadow
     /// Applies the standard card shadow
     func standardShadow() -> some View {
-        self.shadow(
+        shadow(
             color: AppTheme.Shadows.card.color,
             radius: AppTheme.Shadows.card.radius,
             x: AppTheme.Shadows.card.x,

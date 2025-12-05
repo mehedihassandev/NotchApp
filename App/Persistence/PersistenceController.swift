@@ -1,5 +1,5 @@
-import Foundation
 import CoreData
+import Foundation
 
 // MARK: - Persistence Controller
 /// Core Data stack management for local data persistence

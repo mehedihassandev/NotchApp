@@ -1,9 +1,9 @@
+import AVFoundation
+import Combine
+import PDFKit
+import QuickLookThumbnailing
 import SwiftUI
 import UniformTypeIdentifiers
-import Combine
-import QuickLookThumbnailing
-import AVFoundation
-import PDFKit
 
 // MARK: - Tray Item Model
 /// Represents an item stored in the Dropover-style tray
@@ -13,9 +13,9 @@ struct TrayItem: Identifiable, Equatable, Codable {
     let dateAdded: Date
 
     init(url: URL) {
-        self.id = UUID()
+        id = UUID()
         self.url = url
-        self.dateAdded = Date()
+        dateAdded = Date()
     }
 
     static func == (lhs: TrayItem, rhs: TrayItem) -> Bool {

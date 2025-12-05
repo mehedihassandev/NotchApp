@@ -1,6 +1,6 @@
-import SwiftUI
 import AppKit
 import Combine
+import SwiftUI
 import SwiftUIIntrospect
 
 // MARK: - Notch Window Controller

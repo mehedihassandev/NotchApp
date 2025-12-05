@@ -1,6 +1,6 @@
-import SwiftUI
 import LaunchAtLogin
 import Sparkle
+import SwiftUI
 
 // MARK: - Advanced Settings View
 /// Settings view for Launch at Login and Auto-Updates
